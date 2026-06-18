@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://smart-dictation.helper/schemas/words.schema.json",
+  "title": "Words Collection (单词表)",
+  "description": "智听 Smart Dictation Helper - 单词/汉字数据集合。存储英语单词或语文生字及其释义、所属单元等信息。对应云数据库 Collection: words",
+  "type": "object",
+  "required": ["_id", "word", "meaning", "unitId", "subject", "createdAt", "updatedAt"],
+  "properties": {
+    "_id": {
+      "type": "string",
+      "description": "文档唯一标识，由云数据库自动生成"
+    },
+    "word": {
+      "type": "string",
+      "minLength": 1,
+      "description": "单词/汉字本身。英语存英文单词(如 hello)，语文存单个汉字或词语(如 鹏)"
+    },
+    "pinyin": {
+      "type": "string",
+      "description": "拼音，仅语文使用。带声调格式(如 péng)，英语字段留空",
+      "default": ""
+    },
+    "meaning": {
+      "type": "string",
+      "minLength": 1,
+      "description": "中文释义。英语存中文翻译(如 你好)，语文存组词或解释(如 大鹏)"
+    },
+    "unitId": {
+      "type": "string",
+      "description": "所属单元ID，关联 units 集合的 _id"
+    },
+    "subject": {
+      "type": "string",
+      "enum": ["english", "chinese"],
+      "description": "学科类型：english=英语，chinese=语文"
+    },
+    "lesson": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "课次编号，用于按课次筛选听写范围",
+      "default": 1
+    },
+    "partOfSpeech": {
+      "type": "string",
+      "description": "词性，仅英语使用(如 n. / v. / adj.)",
+      "default": ""
+    },
+    "phonetic": {
+      "type": "string",
+      "description": "音标，仅英语使用(如 /həˈləʊ/)",
+      "default": ""
+    },
+    "audioUrl": {
+      "type": "string",
+      "description": "TTS 标准发音音频缓存地址(云存储路径)，为空时实时合成",
+      "default": ""
+    },
+    "difficulty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "难度等级 1-5，用于智能抽题权重",
+      "default": 3
+    },
+    "examples": {
+      "type": "array",
+      "description": "例句列表，可选",
+      "items": {
+        "type": "object",
+        "required": ["sentence", "translation"],
+        "properties": {
+          "sentence": {
+            "type": "string",
+            "description": "例句原文"
+          },
+          "translation": {
+            "type": "string",
+            "description": "例句翻译"
+          }
+        }
+      },
+      "default": []
+    },
+    "source": {
+      "type": "string",
+      "enum": ["manual", "ocr", "import"],
+      "description": "数据来源：manual=手动录入，ocr=拍照AI识别，import=批量导入",
+      "default": "manual"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601 格式"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "更新时间，ISO 8601 格式"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "创建者 openid"
+    }
+  },
+  "additionalProperties": false
+}

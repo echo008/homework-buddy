@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://smart-dictation.helper/schemas/units.schema.json",
+  "title": "Units Collection (单元表)",
+  "description": "智听 Smart Dictation Helper - 单元/教材数据集合。存储教材版本、年级、册次、单元等组织信息，作为单词的分组容器。对应云数据库 Collection: units",
+  "type": "object",
+  "required": ["_id", "name", "subject", "grade", "semester", "textbook", "createdAt", "updatedAt"],
+  "properties": {
+    "_id": {
+      "type": "string",
+      "description": "文档唯一标识，由云数据库自动生成"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "单元名称(如 Unit 1 / 第一单元)"
+    },
+    "subject": {
+      "type": "string",
+      "enum": ["english", "chinese"],
+      "description": "学科类型：english=英语，chinese=语文"
+    },
+    "grade": {
+      "type": "string",
+      "description": "年级(如 三年级 / Grade 3)"
+    },
+    "semester": {
+      "type": "string",
+      "enum": ["上册", "下册", "全一册"],
+      "description": "册次"
+    },
+    "textbook": {
+      "type": "string",
+      "description": "教材版本(如 人教版PEP / 人教版部编 / 外研版)"
+    },
+    "lessonCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "本单元包含的课次数",
+      "default": 0
+    },
+    "wordCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "本单元单词总数(缓存字段，由 words 集合统计同步)",
+      "default": 0
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "排序序号，用于前端列表展示顺序",
+      "default": 0
+    },
+    "coverUrl": {
+      "type": "string",
+      "description": "单元封面图地址(云存储路径)，可选",
+      "default": ""
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601 格式"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "更新时间，ISO 8601 格式"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "创建者 openid"
+    }
+  },
+  "additionalProperties": false
+}

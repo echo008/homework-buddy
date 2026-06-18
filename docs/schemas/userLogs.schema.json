@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://smart-dictation.helper/schemas/userLogs.schema.json",
+  "title": "UserLogs Collection (听写记录表)",
+  "description": "智听 Smart Dictation Helper - 听写会话记录集合。存储每次听写的配置、作答结果、错题明细与统计，支撑错题本与重测功能。对应云数据库 Collection: userLogs",
+  "type": "object",
+  "required": ["_id", "openid", "subject", "mode", "totalWords", "correctCount", "wrongCount", "accuracy", "status", "createdAt"],
+  "properties": {
+    "_id": {
+      "type": "string",
+      "description": "文档唯一标识，由云数据库自动生成"
+    },
+    "openid": {
+      "type": "string",
+      "description": "用户 openid，听写记录归属者"
+    },
+    "unitIds": {
+      "type": "array",
+      "description": "本次听写所选单元ID列表，关联 units 集合",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "subject": {
+      "type": "string",
+      "enum": ["english", "chinese"],
+      "description": "学科类型：english=英语，chinese=语文"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["en2cn", "cn2en", "pinyin2hanzi"],
+      "description": "听写模式：en2cn=英译中，cn2en=中译英，pinyin2hanzi=看拼音写汉字"
+    },
+    "wordCountRange": {
+      "type": "object",
+      "description": "本次抽题数量上下限配置(Min-Max 随机)",
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "最少抽题数"
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "最多抽题数(须 >= min)"
+        }
+      },
+      "default": { "min": 10, "max": 15 }
+    },
+    "totalWords": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "本次实际听写单词总数"
+    },
+    "correctCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "答对数量"
+    },
+    "wrongCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "答错数量"
+    },
+    "accuracy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "正确率(0-100，保留一位小数)"
+    },
+    "duration": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "听写耗时(秒)",
+      "default": 0
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "本次得分(0-100)",
+      "default": 0
+    },
+    "wrongWords": {
+      "type": "array",
+      "description": "错题明细列表，用于错题本与一键重测",
+      "items": {
+        "type": "object",
+        "required": ["wordId", "word", "correctAnswer", "userAnswer", "isCorrect"],
+        "properties": {
+          "wordId": {
+            "type": "string",
+            "description": "单词ID，关联 words 集合"
+          },
+          "word": {
+            "type": "string",
+            "description": "原题(单词/汉字本身)"
+          },
+          "correctAnswer": {
+            "type": "string",
+            "description": "标准答案"
+          },
+          "userAnswer": {
+            "type": "string",
+            "description": "用户作答内容"
+          },
+          "isCorrect": {
+            "type": "boolean",
+            "description": "是否正确(错题本中固定为 false)"
+          }
+        }
+      },
+      "default": []
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "abandoned"],
+      "description": "听写状态：completed=已完成，abandoned=中途放弃",
+      "default": "completed"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "听写时间，ISO 8601 格式"
+    }
+  },
+  "additionalProperties": false
+}
