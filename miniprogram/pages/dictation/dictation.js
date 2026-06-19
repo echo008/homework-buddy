@@ -28,11 +28,15 @@ Page({
   isHidden: false, // 页面是否在后台
 
   onLoad(options) {
-    const { mode, interval, subject } = options
+    const { mode, interval, subject, min, max } = options
     this.setData({
       mode: mode || 'en2cn',
       interval: Number(interval) || 5,
-      subject: subject || 'english'
+      subject: subject || 'english',
+      wordCountRange: {
+        min: Number(min) || 5,
+        max: Number(max) || 10
+      }
     })
 
     const eventChannel = this.getOpenerEventChannel()
@@ -52,6 +56,7 @@ Page({
           questions,
           total: data.total || questions.length,
           unitIds: data.unitIds || [],
+          wordCountRange: data.wordCountRange || this.data.wordCountRange,
           currentIndex: 0,
           userInput: '',
           answers: [],
@@ -275,7 +280,7 @@ Page({
     this.destroyCurrentAudio()
     this.clearCountdown()
 
-    const { answers, unitIds, mode, subject } = this.data
+    const { answers, unitIds, mode, subject, interval, wordCountRange } = this.data
     const correctCount = answers.filter(a => a.isCorrect).length
     const total = answers.length
     const wrongCount = total - correctCount
@@ -286,7 +291,7 @@ Page({
       url: '/pages/result/result',
       success: (nav) => {
         nav.eventChannel.emit('resultData', {
-          answers, unitIds, mode, subject,
+          answers, unitIds, mode, subject, interval, wordCountRange,
           total, correctCount, wrongCount, accuracy, wrongWords
         })
       },

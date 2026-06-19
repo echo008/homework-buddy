@@ -25,31 +25,51 @@ Page({
     })
   },
 
-  // 选择照片或拍照
+  // 选择照片或拍照（优先 chooseMedia，低版本基础库降级到 chooseImage）
   onChooseImage() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath
-        this.uploadAndParse(tempFilePath)
-      },
-      fail: (err) => {
-        console.error('选择图片失败:', err)
-        // 用户拒绝相机/相册权限时，引导去设置页开启
-        if (err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
-          wx.showModal({
-            title: '需要权限',
-            content: '需要相机和相册权限才能拍照识字，请在设置中开启',
-            confirmText: '去设置',
-            success: (res) => {
-              if (res.confirm) wx.openSetting()
-            }
-          })
-        }
+    const handleSuccess = (tempFilePath) => {
+      this.uploadAndParse(tempFilePath)
+    }
+
+    const handleFail = (err) => {
+      console.error('选择图片失败:', err)
+      const errMsg = err && err.errMsg ? err.errMsg : ''
+      // 权限错误时才引导设置（兼容多种错误文案）
+      if (/auth deny|authorize|permission denied/i.test(errMsg)) {
+        wx.showModal({
+          title: '需要权限',
+          content: '需要相机和相册权限才能拍照识字，请在设置中开启',
+          confirmText: '去设置',
+          success: (res) => {
+            if (res.confirm) wx.openSetting()
+          }
+        })
       }
-    })
+    }
+
+    if (wx.canIUse('chooseMedia')) {
+      wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePath = res.tempFiles && res.tempFiles[0] && res.tempFiles[0].tempFilePath
+          if (tempFilePath) handleSuccess(tempFilePath)
+        },
+        fail: handleFail
+      })
+    } else {
+      wx.chooseImage({
+        count: 1,
+        sizeType: ['original', 'compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePath = res.tempFilePaths && res.tempFilePaths[0]
+          if (tempFilePath) handleSuccess(tempFilePath)
+        },
+        fail: handleFail
+      })
+    }
   },
 
   // 上传图片到云存储并调用 parseOcr 云函数

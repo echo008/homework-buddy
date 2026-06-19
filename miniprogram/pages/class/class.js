@@ -46,22 +46,27 @@ Page({
   },
 
   onLoad(options) {
-    this.loadClasses()
+    // 由 onShow 统一加载班级列表，避免 onLoad + onShow 重复请求
 
-    // 处理分享卡片进入：携带 joinCode 时自动填充并提示加入
+    // 处理分享卡片进入：携带 joinCode 时自动填充
     const joinCode = options && options.joinCode ? options.joinCode.trim() : ''
     if (joinCode) {
       this.setData({ joinCode })
-      wx.showModal({
-        title: '加入班级',
-        content: `检测到班级码「${joinCode}」，是否立即加入？`,
-        confirmText: '立即加入',
-        success: (res) => {
-          if (res.confirm) {
-            this.submitJoin()
-          }
+      // 延迟弹窗，避免页面未渲染完成时弹窗打断用户
+      setTimeout(() => {
+        if (!this._isUnloaded) {
+          wx.showModal({
+            title: '加入班级',
+            content: `检测到班级码「${joinCode}」，是否立即加入？`,
+            confirmText: '立即加入',
+            success: (res) => {
+              if (res.confirm) {
+                this.submitJoin()
+              }
+            }
+          })
         }
-      })
+      }, 500)
     }
   },
 
@@ -71,6 +76,10 @@ Page({
     } else if (this.data.currentClass) {
       this.loadClassDetail(this.data.currentClass._id)
     }
+  },
+
+  onUnload() {
+    this._isUnloaded = true
   },
 
   onPullDownRefresh() {
@@ -198,11 +207,9 @@ Page({
     try {
       const res = await getClassDetail(classId)
       if (res.code === 0) {
-        const app = getApp()
-        const openid = app.globalData.openid || ''
         this.setData({
           currentClass: res.data,
-          isCreator: res.data.createdBy === openid
+          isCreator: !!res.data.isCreator
         })
       } else {
         // 班级不存在或无权限时，清空当前班级并返回列表

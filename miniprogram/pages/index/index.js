@@ -79,7 +79,14 @@ Page({
     try {
       const res = await getManagedUnits(subject)
       const units = (res && res.code === 0) ? (res.data || []) : []
-      this.setData({ units, selectedUnitIds: [], selectedUnitMap: {} })
+      // 刷新后保留仍然存在的选中单元，避免用户从其他页面返回后需重新选择
+      const validIds = new Set(units.map(u => u._id))
+      const selectedUnitIds = (this.data.selectedUnitIds || []).filter(id => validIds.has(id))
+      this.setData({
+        units,
+        selectedUnitIds,
+        selectedUnitMap: this.syncSelectedMap(selectedUnitIds)
+      })
       this._loadedOnce = true
     } catch (err) {
       wx.showToast({ title: '单元加载失败', icon: 'none' })
@@ -187,13 +194,14 @@ Page({
 
       // 跳转听写页，传递题目与配置
       wx.navigateTo({
-        url: `/pages/dictation/dictation?mode=${mode}&interval=${interval}&subject=${subject}`,
+        url: `/pages/dictation/dictation?mode=${mode}&interval=${interval}&subject=${subject}&min=${wordCountRange.min}&max=${wordCountRange.max}`,
         success: (nav) => {
           // 通过事件通道传递大数据，避免 URL 过长
           nav.eventChannel.emit('dictationData', {
             questions: res.data.words,
             total: res.data.total,
-            unitIds: selectedUnitIds
+            unitIds: selectedUnitIds,
+            wordCountRange
           })
         },
         fail: (err) => {

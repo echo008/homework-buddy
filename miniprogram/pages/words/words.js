@@ -13,6 +13,7 @@ Page({
     showModal: false,
     editing: false,
     submitting: false,
+    deleting: false,
     form: {
       _id: '',
       word: '',
@@ -175,6 +176,7 @@ Page({
   },
 
   async onDelete(e) {
+    if (this.data.deleting) return
     const id = e.currentTarget.dataset.id
     const res = await wx.showModal({
       title: '确认删除',
@@ -183,6 +185,7 @@ Page({
     })
     if (!res.confirm) return
 
+    this.setData({ deleting: true })
     wx.showLoading({ title: '删除中...' })
     try {
       const result = await deleteWord(id)
@@ -195,6 +198,7 @@ Page({
     } catch (err) {
       wx.showToast({ title: '删除失败', icon: 'none' })
     } finally {
+      this.setData({ deleting: false })
       wx.hideLoading()
     }
   },

@@ -135,7 +135,11 @@ async function getClassDetail(classId, openid) {
 
   return {
     code: 0,
-    data: { ...data, sharedUnits }
+    data: {
+      ...data,
+      sharedUnits,
+      isCreator: data.createdBy === openid
+    }
   }
 }
 

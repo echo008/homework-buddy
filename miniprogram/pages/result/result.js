@@ -12,7 +12,9 @@ Page({
     saved: false,
     unitIds: [],
     mode: 'en2cn',
-    subject: 'english'
+    subject: 'english',
+    interval: 5,
+    wordCountRange: { min: 10, max: 15 }
   },
 
   onLoad() {
@@ -32,7 +34,9 @@ Page({
         wrongWords,
         unitIds: data.unitIds || [],
         mode: data.mode || 'en2cn',
-        subject: data.subject || 'english'
+        subject: data.subject || 'english',
+        interval: data.interval || 5,
+        wordCountRange: data.wordCountRange || { min: data.total || 10, max: data.total || 15 }
       })
       this.saveLog({ ...data, wrongWords })
     })
@@ -47,12 +51,16 @@ Page({
   },
 
   async saveLog(data) {
+    const { wordCountRange } = this.data
     try {
       const res = await saveUserLog({
         unitIds: data.unitIds || [],
         subject: data.subject || 'english',
         mode: data.mode || 'en2cn',
-        wordCountRange: { min: data.total || 0, max: data.total || 0 },
+        wordCountRange: {
+          min: Number(wordCountRange.min) || 0,
+          max: Number(wordCountRange.max) || 0
+        },
         totalWords: data.total || 0,
         correctCount: data.correctCount || 0,
         wrongCount: data.wrongCount || 0,
@@ -73,15 +81,15 @@ Page({
     }
   },
 
-  // 重测错题：保留原始 mode 与 subject，避免 mode=retry 污染后续记录
+  // 重测错题：保留原始 mode / subject / interval，避免配置丢失
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
       wx.showToast({ title: '没有错题，棒极了！', icon: 'none' })
       return
     }
-    const { mode, subject, unitIds } = this.data
+    const { mode, subject, unitIds, interval } = this.data
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${mode}&subject=${subject}`,
+      url: `/pages/dictation/dictation?mode=${mode}&subject=${subject}&interval=${interval}`,
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
           questions: this.data.wrongWords.map((w, i) => ({

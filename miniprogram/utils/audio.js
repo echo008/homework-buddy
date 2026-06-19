@@ -64,6 +64,8 @@ async function uploadAudio(tempFilePath, folder = 'audio') {
 
 // 当前正在播放的音频上下文（单例，避免连续点击叠加播放）
 let currentPlayContext = null
+// 播放令牌：防止 async 获取临时链接期间被新播放请求覆盖
+let playToken = 0
 
 /**
  * 停止当前播放
@@ -83,8 +85,10 @@ function stopPlay() {
 /**
  * 播放音频（支持云存储 fileID）
  * 单例管理：播放新音频前自动停止上一个，避免叠加
+ * 使用 playToken 防止获取临时链接期间的竞态覆盖
  */
 async function playAudio(src) {
+  const token = ++playToken
   // 播放前先停止上一个
   stopPlay()
 
@@ -99,6 +103,9 @@ async function playAudio(src) {
       console.error('获取云文件临时链接失败:', err)
     }
   }
+
+  // 如果在 await 期间又有新的播放请求，丢弃本次旧结果
+  if (token !== playToken) return
 
   const innerAudioContext = wx.createInnerAudioContext()
   currentPlayContext = innerAudioContext
