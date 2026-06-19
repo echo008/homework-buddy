@@ -50,7 +50,13 @@ Page({
     adding: false
   },
 
-  onLoad() {
+  onLoad(options) {
+    // 支持外部跳转携带学科（如班级详情页"去听写"）
+    const subject = options && options.subject
+    if (subject && ['english', 'chinese'].includes(subject)) {
+      const modes = this.data.modeOptions[subject]
+      this.setData({ subject, mode: modes[0].value })
+    }
     // 首次加载由 onShow 统一触发，避免重复请求
   },
 
@@ -118,7 +124,7 @@ Page({
   // 单元多选切换
   onUnitToggle(e) {
     const unitId = e.currentTarget.dataset.id
-    let { selectedUnitIds } = this.data
+    let selectedUnitIds = [...this.data.selectedUnitIds]
     if (selectedUnitIds.includes(unitId)) {
       selectedUnitIds = selectedUnitIds.filter(id => id !== unitId)
     } else {

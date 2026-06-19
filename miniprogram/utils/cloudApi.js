@@ -97,7 +97,9 @@ function previewPresetWords(unitId, limit = 20) {
   return callCloud('presetManage', { action: 'previewPresetWords', unitId, limit })
 }
 
-function importPresetUnits(presetUnitIds) {
+function importPresetUnits(params = {}) {
+  // 兼容直接传数组或 { presetUnitIds: [...] } 对象
+  const presetUnitIds = Array.isArray(params) ? params : (params.presetUnitIds || [])
   return callCloud('presetManage', { action: 'importPresetUnits', presetUnitIds })
 }
 

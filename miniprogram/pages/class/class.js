@@ -37,6 +37,9 @@ Page({
     currentClass: null,
     detailLoading: false,
     isCreator: false,
+    leaving: false,
+    dismissing: false,
+    unsharing: false,
 
     // 共享单元
     showShareModal: false,
@@ -237,8 +240,8 @@ Page({
 
   // 退出班级
   async onLeaveClass() {
-    const { currentClass } = this.data
-    if (!currentClass) return
+    const { currentClass, leaving } = this.data
+    if (!currentClass || leaving) return
 
     const res = await wx.showModal({
       title: '确认退出',
@@ -247,6 +250,7 @@ Page({
     })
     if (!res.confirm) return
 
+    this.setData({ leaving: true })
     wx.showLoading({ title: '退出中...' })
     try {
       const result = await leaveClass(currentClass._id)
@@ -259,6 +263,7 @@ Page({
     } catch (err) {
       wx.showToast({ title: '退出失败', icon: 'none' })
     } finally {
+      this.setData({ leaving: false })
       wx.hideLoading()
     }
   },
@@ -266,8 +271,8 @@ Page({
   // 取消共享
   async onUnshare(e) {
     const unitId = e.currentTarget.dataset.id
-    const { currentClass } = this.data
-    if (!currentClass) return
+    const { currentClass, unsharing } = this.data
+    if (!currentClass || unsharing) return
 
     const res = await wx.showModal({
       title: '确认取消共享',
@@ -276,6 +281,7 @@ Page({
     })
     if (!res.confirm) return
 
+    this.setData({ unsharing: true })
     wx.showLoading({ title: '操作中...' })
     try {
       const result = await unshareUnitFromClass(currentClass._id, unitId)
@@ -288,6 +294,7 @@ Page({
     } catch (err) {
       wx.showToast({ title: '操作失败', icon: 'none' })
     } finally {
+      this.setData({ unsharing: false })
       wx.hideLoading()
     }
   },
@@ -296,13 +303,13 @@ Page({
   goDictation() {
     const { currentClass } = this.data
     if (!currentClass) return
-    wx.reLaunch({ url: '/pages/index/index' })
+    wx.reLaunch({ url: `/pages/index/index?subject=${currentClass.subject}` })
   },
 
   // 解散班级（仅创建者）
   async onDismissClass() {
-    const { currentClass } = this.data
-    if (!currentClass) return
+    const { currentClass, dismissing } = this.data
+    if (!currentClass || dismissing) return
 
     const res = await wx.showModal({
       title: '确认解散班级',
@@ -312,6 +319,7 @@ Page({
     })
     if (!res.confirm) return
 
+    this.setData({ dismissing: true })
     wx.showLoading({ title: '解散中...' })
     try {
       const result = await dismissClass(currentClass._id)
@@ -324,6 +332,7 @@ Page({
     } catch (err) {
       wx.showToast({ title: '解散失败', icon: 'none' })
     } finally {
+      this.setData({ dismissing: false })
       wx.hideLoading()
     }
   },

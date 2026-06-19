@@ -78,8 +78,8 @@
     </view>
 
     <button class="btn-primary btn-full" bindtap="goDictation">去听写</button>
-    <button class="btn-secondary btn-full btn-leave" wx:if="{{!isCreator}}" bindtap="onLeaveClass">退出班级</button>
-    <button class="btn-secondary btn-full btn-leave" wx:else bindtap="onDismissClass">解散班级</button>
+    <button class="btn-secondary btn-full btn-leave" wx:if="{{!isCreator}}" bindtap="onLeaveClass" loading="{{leaving}}" disabled="{{leaving}}">退出班级</button>
+    <button class="btn-secondary btn-full btn-leave" wx:else bindtap="onDismissClass" loading="{{dismissing}}" disabled="{{dismissing}}">解散班级</button>
     <button class="btn-secondary btn-full" bindtap="backToList">返回班级列表</button>
   </block>
 

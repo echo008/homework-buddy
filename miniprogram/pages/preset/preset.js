@@ -169,7 +169,7 @@ Page({
 
   onUnitToggle(e) {
     const unitId = e.currentTarget.dataset.id
-    let { selectedUnitIds } = this.data
+    let selectedUnitIds = [...this.data.selectedUnitIds]
     if (selectedUnitIds.includes(unitId)) {
       selectedUnitIds = selectedUnitIds.filter(id => id !== unitId)
     } else {
