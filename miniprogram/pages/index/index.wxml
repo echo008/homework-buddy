@@ -21,7 +21,7 @@
       <view
         wx:for="{{units}}"
         wx:key="_id"
-        class="unit-chip {{selectedUnitIds.includes(item._id) ? 'chip-active' : ''}}"
+        class="unit-chip {{selectedUnitMap[item._id] ? 'chip-active' : ''}}"
         data-id="{{item._id}}"
         bindtap="onUnitToggle"
       >
@@ -61,7 +61,7 @@
         step="1"
         value="{{countMin}}"
         block-size="22"
-        activeColor="#4a90d9"
+        activeColor="#4f46e5"
         bindchange="onMinChange"
       />
       <text class="range-value">{{countMin}}</text>
@@ -75,7 +75,7 @@
         step="1"
         value="{{countMax}}"
         block-size="22"
-        activeColor="#4a90d9"
+        activeColor="#4f46e5"
         bindchange="onMaxChange"
       />
       <text class="range-value">{{countMax}}</text>
@@ -91,7 +91,7 @@
       step="1"
       value="{{interval}}"
       block-size="22"
-      activeColor="#4a90d9"
+      activeColor="#4f46e5"
       bindchange="onIntervalChange"
     />
   </view>

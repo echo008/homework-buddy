@@ -56,9 +56,11 @@ Page({
           userInput: '',
           answers: [],
           dataReady: true
+        }, () => {
+          // setData 完成后再操作音频，避免读到旧数据
+          this.updateAudioFlag()
+          this.startCountdown()
         })
-        this.updateAudioFlag()
-        this.playCurrent()
       })
 
       // 超时保护：3 秒内未收到数据则提示并返回

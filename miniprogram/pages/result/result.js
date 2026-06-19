@@ -1,5 +1,5 @@
 // pages/result/result.js - 结果批改页
-const { saveUserLog } = require('../../utils/db.js')
+const { saveUserLog } = require('../../utils/cloudApi.js')
 
 Page({
   data: {
@@ -48,14 +48,7 @@ Page({
 
   async saveLog(data) {
     try {
-      const app = getApp()
-      const openid = app.globalData.openid || ''
-      if (!openid) {
-        console.warn('openid 为空，跳过记录保存')
-        return
-      }
-      await saveUserLog({
-        openid,
+      const res = await saveUserLog({
         unitIds: data.unitIds || [],
         subject: data.subject || 'english',
         mode: data.mode || 'en2cn',
@@ -67,6 +60,11 @@ Page({
         wrongWords: data.wrongWords || [],
         status: 'completed'
       })
+      if (res.code !== 0) {
+        console.error('保存听写记录失败:', res.message)
+        wx.showToast({ title: '成绩记录未保存，可继续查看', icon: 'none', duration: 2500 })
+        return
+      }
       this.setData({ saved: true })
     } catch (err) {
       console.error('保存听写记录失败:', err)

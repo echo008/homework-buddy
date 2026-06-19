@@ -1,5 +1,5 @@
 // pages/profile/profile.js - 我的/词库管理
-const { getUserLogs } = require('../../utils/db.js')
+const { getUserLogs } = require('../../utils/cloudApi.js')
 
 // 时间格式化：ISO/Date → 友好显示（如 "2026-06-19 14:30"）
 function formatTime(input) {
@@ -38,21 +38,10 @@ Page({
 
   async loadLogs() {
     try {
-      const app = getApp()
-      // 等待 openid 就绪，避免首次启动时 openid 为 null 导致记录加载失败
-      let openid = app.globalData.openid || ''
-      if (!openid) {
-        try {
-          openid = await app.ensureOpenid()
-        } catch (err) {
-          this.setData({ loading: false })
-          wx.showToast({ title: '用户信息获取失败', icon: 'none' })
-          return
-        }
-      }
-      const logs = await getUserLogs(openid, 50)
+      const res = await getUserLogs(50)
+      const logs = (res && res.code === 0) ? (res.data || []) : []
       // 时间格式化，避免直接显示 ISO 字符串
-      const formatted = (logs || []).map((log) => ({
+      const formatted = logs.map((log) => ({
         ...log,
         createdAtText: formatTime(log.createdAt)
       }))

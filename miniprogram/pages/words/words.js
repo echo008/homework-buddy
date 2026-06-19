@@ -36,7 +36,7 @@ Page({
       return
     }
     this.setData({ unitId, unitName: decodeURIComponent(unitName), subject })
-    this.loadWords()
+    // 由 onShow 统一加载，避免 onLoad + onShow 重复请求
   },
 
   onShow() {
@@ -205,17 +205,24 @@ Page({
         await audio.startRecord()
         this.setData({ recordState: 'recording', recordText: '正在录音，点击结束' })
       } catch (err) {
-        // 权限被拒时引导用户去设置页开启
-        wx.showModal({
-          title: '需要录音权限',
-          content: '录音功能需要授权才能使用，请在设置中开启录音权限。',
-          confirmText: '去设置',
-          success(res) {
-            if (res.confirm) {
-              wx.openSetting()
+        const errMsg = (err && err.errMsg) || ''
+        const isAuthError = /authorize|auth|permission|denied/i.test(errMsg)
+        if (isAuthError) {
+          // 权限被拒时引导用户去设置页开启
+          wx.showModal({
+            title: '需要录音权限',
+            content: '录音功能需要授权才能使用，请在设置中开启录音权限。',
+            confirmText: '去设置',
+            success(res) {
+              if (res.confirm) {
+                wx.openSetting()
+              }
             }
-          }
-        })
+          })
+        } else {
+          wx.showToast({ title: '录音启动失败，请重试', icon: 'none' })
+          console.error('录音启动失败:', err)
+        }
       }
     } else if (this.data.recordState === 'recording') {
       this.setData({ recordState: 'uploading', recordText: '上传中...' })

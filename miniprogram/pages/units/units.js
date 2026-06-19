@@ -24,7 +24,7 @@ Page({
   },
 
   onLoad() {
-    this.loadUnits()
+    // 由 onShow 统一加载，避免 onLoad + onShow 重复请求
   },
 
   onShow() {

@@ -79,6 +79,16 @@ function deleteWord(wordId) {
   return callCloud('wordManage', { action: 'delete', wordId })
 }
 
+// ========== 听写记录 ==========
+
+function saveUserLog(log) {
+  return callCloud('logManage', { action: 'save', log })
+}
+
+function getUserLogs(limit = 20) {
+  return callCloud('logManage', { action: 'list', limit })
+}
+
 // ========== 班级共享 ==========
 
 function createClass(name, subject) {
@@ -130,5 +140,7 @@ module.exports = {
   shareUnitToClass,
   unshareUnitFromClass,
   leaveClass,
-  dismissClass
+  dismissClass,
+  saveUserLog,
+  getUserLogs
 }

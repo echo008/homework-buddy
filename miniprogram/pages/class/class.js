@@ -45,8 +45,24 @@ Page({
     sharing: false
   },
 
-  onLoad() {
+  onLoad(options) {
     this.loadClasses()
+
+    // 处理分享卡片进入：携带 joinCode 时自动填充并提示加入
+    const joinCode = options && options.joinCode ? options.joinCode.trim() : ''
+    if (joinCode) {
+      this.setData({ joinCode })
+      wx.showModal({
+        title: '加入班级',
+        content: `检测到班级码「${joinCode}」，是否立即加入？`,
+        confirmText: '立即加入',
+        success: (res) => {
+          if (res.confirm) {
+            this.submitJoin()
+          }
+        }
+      })
+    }
   },
 
   onShow() {
@@ -372,7 +388,7 @@ Page({
     if (cls) {
       return {
         title: `加入班级「${cls.name}」，一起听写吧！班级码：${cls.code}`,
-        path: '/pages/class/class'
+        path: `/pages/class/class?joinCode=${cls.code}`
       }
     }
     return {

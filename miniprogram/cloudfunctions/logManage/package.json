@@ -1,0 +1,9 @@
+{
+  "name": "logManage",
+  "version": "1.0.0",
+  "description": "听写记录管理：保存与查询",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

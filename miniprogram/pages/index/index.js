@@ -13,6 +13,7 @@ Page({
     // 单元列表
     units: [],
     selectedUnitIds: [],
+    selectedUnitMap: {}, // WXML 不支持 Array.includes，预计算选中映射
 
     // 听写模式
     mode: 'en2cn',
@@ -78,7 +79,7 @@ Page({
     try {
       const res = await getManagedUnits(subject)
       const units = (res && res.code === 0) ? (res.data || []) : []
-      this.setData({ units, selectedUnitIds: [] })
+      this.setData({ units, selectedUnitIds: [], selectedUnitMap: {} })
       this._loadedOnce = true
     } catch (err) {
       wx.showToast({ title: '单元加载失败', icon: 'none' })
@@ -87,14 +88,24 @@ Page({
     }
   },
 
+  // 将选中 ID 数组同步为 WXML 可用的 Map
+  syncSelectedMap(selectedUnitIds) {
+    const selectedUnitMap = {}
+    selectedUnitIds.forEach(id => { selectedUnitMap[id] = true })
+    return selectedUnitMap
+  },
+
   // 全选/取消全选单元
   onToggleAll() {
     const { units, selectedUnitIds } = this.data
-    if (selectedUnitIds.length === units.length) {
-      this.setData({ selectedUnitIds: [] })
-    } else {
-      this.setData({ selectedUnitIds: units.map(u => u._id) })
+    let nextIds = []
+    if (selectedUnitIds.length !== units.length) {
+      nextIds = units.map(u => u._id)
     }
+    this.setData({
+      selectedUnitIds: nextIds,
+      selectedUnitMap: this.syncSelectedMap(nextIds)
+    })
   },
 
   // 单元多选切换
@@ -106,7 +117,10 @@ Page({
     } else {
       selectedUnitIds.push(unitId)
     }
-    this.setData({ selectedUnitIds })
+    this.setData({
+      selectedUnitIds,
+      selectedUnitMap: this.syncSelectedMap(selectedUnitIds)
+    })
   },
 
   // 模式切换
