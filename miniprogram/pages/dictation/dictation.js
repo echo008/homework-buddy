@@ -12,10 +12,12 @@ Page({
     answers: [],
     total: 0,
     isPlaying: false,
-    unitIds: []
+    unitIds: [],
+    countdown: 0,
+    hasCustomAudio: false
   },
 
-  timer: null,
+  countdownTimer: null,
 
   onLoad(options) {
     const { mode, interval, subject } = options
@@ -25,63 +27,75 @@ Page({
       subject: subject || 'english'
     })
 
-    // 接收首页传递的题目数据
     const eventChannel = this.getOpenerEventChannel()
     if (eventChannel && eventChannel.on) {
       eventChannel.on('dictationData', (data) => {
+        const questions = data.questions || []
         this.setData({
-          questions: data.questions || [],
-          total: data.total || 0,
-          unitIds: data.unitIds || []
+          questions,
+          total: data.total || questions.length,
+          unitIds: data.unitIds || [],
+          currentIndex: 0,
+          userInput: '',
+          answers: []
         })
-        // 首题自动播报
+        this.updateAudioFlag()
         this.playCurrent()
       })
     }
   },
 
   onUnload() {
-    this.clearTimer()
+    this.clearCountdown()
   },
 
-  clearTimer() {
-    if (this.timer) {
-      clearTimeout(this.timer)
-      this.timer = null
+  clearCountdown() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer)
+      this.countdownTimer = null
     }
   },
 
-  // 播报当前题
+  updateAudioFlag() {
+    const { questions, currentIndex } = this.data
+    const current = questions[currentIndex]
+    this.setData({
+      hasCustomAudio: !!(current && current.audioUrl)
+    })
+  },
+
+  // 播报当前题：优先使用自定义录音，否则用 TTS
   playCurrent() {
     const { questions, currentIndex } = this.data
     const current = questions[currentIndex]
     if (!current) return
 
-    const lang = resolveLang(current.promptType, this.data.subject)
     this.setData({ isPlaying: true })
 
-    speak(current.prompt, lang, {
-      onStart: () => this.setData({ isPlaying: true }),
-      onEnd: () => this.setData({ isPlaying: false }),
-      onError: (err) => {
-        this.setData({ isPlaying: false })
-        console.error('播报失败:', err)
-      }
-    })
+    if (current.audioUrl) {
+      playCustomAudio(current.audioUrl, {
+        onEnd: () => this.setData({ isPlaying: false }),
+        onError: () => this.setData({ isPlaying: false })
+      })
+    } else {
+      const lang = resolveLang(current.promptType, this.data.subject)
+      speak(current.prompt, lang, {
+        onStart: () => this.setData({ isPlaying: true }),
+        onEnd: () => this.setData({ isPlaying: false }),
+        onError: () => this.setData({ isPlaying: false })
+      })
+    }
   },
 
-  // 手动重播
   onReplay() {
-    this.clearTimer()
+    this.clearCountdown()
     this.playCurrent()
   },
 
-  // 输入
   onInput(e) {
     this.setData({ userInput: e.detail.value })
   },
 
-  // 下一题
   onNext() {
     const { questions, currentIndex, userInput, answers } = this.data
     const current = questions[currentIndex]
@@ -105,18 +119,30 @@ Page({
     if (currentIndex + 1 < questions.length) {
       const nextIndex = currentIndex + 1
       this.setData({ currentIndex: nextIndex })
-      // 按配置间隔自动播报下一题
-      const { interval } = this.data
-      this.clearTimer()
-      this.timer = setTimeout(() => {
-        this.playCurrent()
-      }, interval * 1000)
+      this.updateAudioFlag()
+      this.startCountdown()
     } else {
       this.finish()
     }
   },
 
-  // 完成听写
+  startCountdown() {
+    const { interval } = this.data
+    this.clearCountdown()
+    this.setData({ countdown: interval })
+
+    this.countdownTimer = setInterval(() => {
+      const { countdown } = this.data
+      if (countdown <= 1) {
+        this.clearCountdown()
+        this.setData({ countdown: 0 })
+        this.playCurrent()
+      } else {
+        this.setData({ countdown: countdown - 1 })
+      }
+    }, 1000)
+  },
+
   finish() {
     const { answers, unitIds, mode, subject } = this.data
     const correctCount = answers.filter(a => a.isCorrect).length
@@ -136,6 +162,24 @@ Page({
     })
   }
 })
+
+function playCustomAudio(url, callbacks = {}) {
+  const innerAudioContext = wx.createInnerAudioContext()
+  innerAudioContext.src = url
+  innerAudioContext.onPlay(() => {
+    if (typeof callbacks.onStart === 'function') callbacks.onStart()
+  })
+  innerAudioContext.onEnded(() => {
+    if (typeof callbacks.onEnd === 'function') callbacks.onEnd()
+    innerAudioContext.destroy()
+  })
+  innerAudioContext.onError((err) => {
+    console.error('自定义音频播放失败:', err)
+    if (typeof callbacks.onError === 'function') callbacks.onError(err)
+    innerAudioContext.destroy()
+  })
+  innerAudioContext.play()
+}
 
 function normalizeAnswer(value, answerType) {
   if (!value) return ''

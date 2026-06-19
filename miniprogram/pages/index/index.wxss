@@ -3,10 +3,10 @@
 .subject-tabs {
   display: flex;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: var(--radius);
   padding: 8rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow);
 }
 
 .tab {
@@ -14,15 +14,15 @@
   text-align: center;
   padding: 20rpx 0;
   font-size: 30rpx;
-  color: #888;
-  border-radius: 12rpx;
+  color: var(--text-secondary);
+  border-radius: 18rpx;
   transition: all 0.2s;
 }
 
 .tab-active {
-  background: #4a90d9;
+  background: var(--primary);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* 单元网格 */
@@ -35,36 +35,36 @@
 .unit-chip {
   width: calc(33.333% - 14rpx);
   padding: 24rpx 12rpx;
-  border: 2rpx solid #eee;
-  border-radius: 14rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius);
   text-align: center;
-  background: #fafbfc;
+  background: var(--bg);
   transition: all 0.2s;
 }
 
 .chip-active {
-  border-color: #4a90d9;
-  background: #e8f1fc;
+  border-color: var(--primary);
+  background: var(--primary-light);
 }
 
 .chip-name {
   display: block;
   font-size: 28rpx;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: var(--text-main);
   margin-bottom: 8rpx;
 }
 
 .chip-count {
   display: block;
   font-size: 22rpx;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-tip {
   text-align: center;
   padding: 40rpx 0;
-  color: #999;
+  color: var(--text-muted);
   font-size: 26rpx;
 }
 
@@ -72,9 +72,9 @@
   display: inline-block;
   margin-top: 20rpx;
   padding: 12rpx 36rpx;
-  background: #4a90d9;
+  background: var(--primary);
   color: #fff;
-  border-radius: 40rpx;
+  border-radius: 999rpx;
   font-size: 26rpx;
 }
 
@@ -88,18 +88,18 @@
   flex: 1;
   padding: 24rpx 0;
   text-align: center;
-  border: 2rpx solid #eee;
-  border-radius: 14rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius);
   font-size: 28rpx;
-  color: #555;
-  background: #fafbfc;
+  color: var(--text-secondary);
+  background: var(--bg);
 }
 
 .mode-active {
-  border-color: #4a90d9;
-  background: #e8f1fc;
-  color: #4a90d9;
-  font-weight: 600;
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
 }
 
 /* 数量区间 */
@@ -112,7 +112,7 @@
 .range-label {
   width: 80rpx;
   font-size: 26rpx;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .range-slider {
@@ -124,8 +124,52 @@
   width: 60rpx;
   text-align: center;
   font-size: 30rpx;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* 快捷入口 */
+.quick-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.quick-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 24rpx 0;
+  background: var(--bg);
+  border-radius: var(--radius);
+  transition: transform 0.15s;
+}
+
+.quick-item:active {
+  transform: scale(0.96);
+}
+
+.quick-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+}
+
+.quick-primary { background: var(--primary-light); }
+.quick-accent { background: var(--accent-light); }
+.quick-warning { background: var(--warning-light); }
+.quick-soft { background: #f3e8ff; }
+
+.quick-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
   font-weight: 600;
-  color: #4a90d9;
 }
 
 /* 操作栏 */
@@ -136,19 +180,14 @@
   padding-bottom: 40rpx;
 }
 
-.btn-secondary {
+.action-bar .btn-secondary {
   flex: 1;
-  background: #fff;
-  color: #4a90d9;
-  border: 2rpx solid #4a90d9;
-  border-radius: 48rpx;
-  font-size: 30rpx;
-  height: 88rpx;
-  line-height: 84rpx;
+  margin: 0;
 }
 
 .action-bar .btn-primary {
   flex: 2;
+  margin: 0;
 }
 
 .btn-full {
@@ -170,7 +209,7 @@
   transform: translate(-50%, -50%);
   width: 640rpx;
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   z-index: 201;
   box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.15);
 }
@@ -180,18 +219,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 30rpx 32rpx;
-  border-bottom: 1rpx solid #eee;
+  border-bottom: 1rpx solid var(--border);
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #333;
+  color: var(--text-main);
 }
 
 .modal-close {
   font-size: 32rpx;
-  color: #999;
+  color: var(--text-muted);
   padding: 0 10rpx;
 }
 
@@ -201,29 +240,14 @@
   overflow-y: auto;
 }
 
-.form-row {
-  margin-bottom: 20rpx;
-}
-
-.form-label {
-  display: block;
-  font-size: 26rpx;
-  color: #666;
-  margin-bottom: 10rpx;
-}
-
-.form-input {
-  width: 100%;
-  height: 76rpx;
-  padding: 0 20rpx;
-  border: 1rpx solid #e0e0e0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  box-sizing: border-box;
-}
-
 .modal-footer {
   display: flex;
   gap: 20rpx;
   padding: 24rpx 32rpx 40rpx;
+}
+
+.modal-footer .btn-secondary,
+.modal-footer .btn-primary {
+  flex: 1;
+  margin: 0;
 }

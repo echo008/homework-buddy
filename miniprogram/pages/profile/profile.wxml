@@ -1,16 +1,56 @@
 <!--pages/profile/profile.wxml - 我的/历史记录-->
-<view class="container">
+<view class="container profile-page">
   <view class="card profile-header">
     <view class="avatar">📚</view>
-    <view class="profile-name">Homework Buddy 学员</view>
+    <view class="profile-name">智听小学员</view>
+    <view class="profile-desc">坚持听写，每天进步一点点</view>
   </view>
 
+  <!-- 统计 -->
+  <view class="card stats-card">
+    <view class="stat-item">
+      <text class="stat-num">{{stats.totalTests}}</text>
+      <text class="stat-label">听写次数</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.totalWords}}</text>
+      <text class="stat-label">听写单词</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">{{stats.avgAccuracy}}</text>
+      <text class="stat-label">平均正确率%</text>
+    </view>
+  </view>
+
+  <!-- 入口 -->
+  <view class="card menu-card">
+    <view class="menu-item" bindtap="goUnits">
+      <text class="menu-icon">📚</text>
+      <text class="menu-label">我的单元/词库</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goClass">
+      <text class="menu-icon">🏫</text>
+      <text class="menu-label">班级共享</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <button class="menu-item share-item" open-type="share">
+      <text class="menu-icon">📣</text>
+      <text class="menu-label">推荐给好友</text>
+      <text class="menu-arrow">›</text>
+    </button>
+  </view>
+
+  <!-- 最近听写 -->
   <view class="section-title">最近听写</view>
 
   <view wx:if="{{logs.length > 0}}">
     <view class="card log-item" wx:for="{{logs}}" wx:key="_id">
       <view class="log-top">
-        <text class="log-subject">{{item.subject === 'english' ? '英语' : '语文'}}</text>
+        <view class="log-subject-wrap">
+          <text class="tag {{item.subject === 'english' ? 'tag-primary' : 'tag-accent'}}">{{item.subject === 'english' ? '英语' : '语文'}}</text>
+          <text class="log-mode">{{item.mode === 'en2cn' ? '英→中' : item.mode === 'cn2en' ? '中→英' : '拼音→汉字'}}</text>
+        </view>
         <text class="log-accuracy">{{item.accuracy}}%</text>
       </view>
       <view class="log-bottom">

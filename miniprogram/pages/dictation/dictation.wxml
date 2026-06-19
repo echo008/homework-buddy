@@ -2,7 +2,7 @@
 <view class="container dictation-page">
   <!-- 进度 -->
   <view class="progress-bar">
-    <view class="progress-text">{{currentIndex + 1}} / {{total}}</view>
+    <view class="progress-text">第 {{currentIndex + 1}} 题 / 共 {{total}} 题</view>
     <view class="progress-track">
       <view class="progress-fill" style="width: {{(currentIndex + 1) / total * 100}}%"></view>
     </view>
@@ -11,25 +11,39 @@
   <!-- 题目区 -->
   <view class="card question-card" wx:if="{{questions.length > 0}}">
     <view class="question-prompt">{{questions[currentIndex].prompt}}</view>
-    <view class="replay-btn" bindtap="onReplay">🔊 再听一遍</view>
+    <view class="question-tags">
+      <text class="tag tag-primary" wx:if="{{hasCustomAudio}}">自定义读音</text>
+      <text class="tag tag-accent" wx:else>AI 朗读</text>
+    </view>
+    <view class="replay-btn {{isPlaying ? 'playing' : ''}}" bindtap="onReplay">
+      <text class="replay-icon">{{isPlaying ? '🔊' : '▶️'}}</text>
+      <text>{{isPlaying ? '播放中...' : '再听一遍'}}</text>
+    </view>
+  </view>
+
+  <!-- 倒计时 -->
+  <view class="countdown-card" wx:if="{{countdown > 0}}">
+    <text class="countdown-num">{{countdown}}</text>
+    <text class="countdown-text">秒后自动播放下一题</text>
   </view>
 
   <!-- 作答区 -->
-  <view class="card">
-    <view class="section-title">请输入答案</view>
+  <view class="card answer-card">
+    <view class="section-title">写出你听到的内容</view>
     <input
       class="answer-input"
       type="text"
       value="{{userInput}}"
-      placeholder="在此输入..."
+      placeholder="在此输入答案..."
       bindinput="onInput"
       confirm-type="done"
       bindconfirm="onNext"
+      focus
     />
   </view>
 
   <!-- 操作 -->
-  <button class="btn-primary" bindtap="onNext">
+  <button class="btn-primary btn-next" bindtap="onNext">
     {{currentIndex + 1 < total ? '下一题' : '完成听写'}}
   </button>
 </view>

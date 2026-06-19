@@ -1,0 +1,142 @@
+<!--pages/class/class.wxml - 班级共享页-->
+<view class="container class-page">
+  <!-- 列表视图 -->
+  <block wx:if="{{view === 'list'}}">
+    <!-- 加入班级 -->
+    <view class="card join-card">
+      <view class="section-title">加入班级</view>
+      <view class="join-row">
+        <input
+          class="form-input join-input"
+          type="number"
+          value="{{joinCode}}"
+          bindinput="onJoinInput"
+          placeholder="输入 6 位班级码"
+          maxlength="6"
+        />
+        <button class="btn-primary join-btn" bindtap="submitJoin" loading="{{joining}}" disabled="{{joining}}">加入</button>
+      </view>
+    </view>
+
+    <!-- 我的班级 -->
+    <view class="card" wx:if="{{classes.length > 0}}">
+      <view class="section-title">我的班级</view>
+      <view class="class-list">
+        <view class="class-item" wx:for="{{classes}}" wx:key="_id" bindtap="enterClass" data-cls="{{item}}">
+          <view class="class-main">
+            <text class="class-name">{{item.name}}</text>
+            <view class="class-meta">
+              <text class="tag {{item.subject === 'english' ? 'tag-primary' : 'tag-accent'}}">{{item.subject === 'english' ? '英语' : '语文'}}</text>
+              <text class="class-code">码：{{item.code}}</text>
+            </view>
+          </view>
+          <view class="class-arrow">›</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card empty-state" wx:elif="{{!loading}}">
+      <text class="empty-icon">🏫</text>
+      <text class="empty-title">还没有班级</text>
+      <text class="empty-desc">创建班级后，把班级码分享给同学，即可共享词库。</text>
+    </view>
+
+    <view class="fab" bindtap="openCreateModal">+</view>
+  </block>
+
+  <!-- 详情视图 -->
+  <block wx:if="{{view === 'detail' && currentClass}}">
+    <view class="card detail-header">
+      <view class="detail-name">{{currentClass.name}}</view>
+      <view class="detail-code-row" bindtap="copyCode">
+        <text class="detail-code">班级码：{{currentClass.code}}</text>
+        <text class="copy-btn">复制</text>
+      </view>
+      <view class="detail-meta">
+        <text class="tag {{currentClass.subject === 'english' ? 'tag-primary' : 'tag-accent'}}">{{currentClass.subject === 'english' ? '英语' : '语文'}}</text>
+        <text class="member-count">{{(currentClass.members || []).length}} 位成员</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title section-title-between">
+        <text>共享单元</text>
+        <text class="btn-text" bindtap="openShareModal">+ 共享单元</text>
+      </view>
+      <view class="unit-list" wx:if="{{(currentClass.sharedUnits || []).length > 0}}">
+        <view class="unit-item" wx:for="{{currentClass.sharedUnits}}" wx:key="_id">
+          <view class="unit-info">
+            <text class="unit-name">{{item.name}}</text>
+            <text class="tag tag-primary">{{item.wordCount || 0}} 词</text>
+          </view>
+        </view>
+      </view>
+      <view class="empty-mini" wx:else>
+        <text>暂无共享单元，点击右上角添加</text>
+      </view>
+    </view>
+
+    <button class="btn-secondary btn-full" bindtap="backToList">返回班级列表</button>
+  </block>
+
+  <!-- 创建班级弹窗 -->
+  <view class="modal-mask" wx:if="{{showCreateModal}}" bindtap="closeCreateModal"></view>
+  <view class="modal" wx:if="{{showCreateModal}}">
+    <view class="modal-header">
+      <text class="modal-title">创建班级</text>
+      <text class="modal-close" bindtap="closeCreateModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-row">
+        <text class="form-label">班级名称</text>
+        <input class="form-input" value="{{createForm.name}}" bindinput="onCreateInput" placeholder="如 三年级二班" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">学科</text>
+        <view class="subject-tabs">
+          <view
+            wx:for="{{subjectTabs}}"
+            wx:key="key"
+            class="tab {{createForm.subject === item.key ? 'tab-active' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="onCreateSubjectChange"
+          >{{item.label}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="btn-secondary" bindtap="closeCreateModal">取消</button>
+      <button class="btn-primary" bindtap="submitCreate" loading="{{creating}}" disabled="{{creating}}">创建</button>
+    </view>
+  </view>
+
+  <!-- 共享单元弹窗 -->
+  <view class="modal-mask" wx:if="{{showShareModal}}" bindtap="closeShareModal"></view>
+  <view class="modal" wx:if="{{showShareModal}}">
+    <view class="modal-header">
+      <text class="modal-title">选择要共享的单元</text>
+      <text class="modal-close" bindtap="closeShareModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="share-unit-list" wx:if="{{myUnits.length > 0}}">
+        <view
+          wx:for="{{myUnits}}"
+          wx:key="_id"
+          class="share-unit-item {{selectedShareUnitId === item._id ? 'share-unit-active' : ''}}"
+          data-id="{{item._id}}"
+          bindtap="selectShareUnit"
+        >
+          <text class="share-unit-name">{{item.name}}</text>
+          <text class="tag tag-primary">{{item.wordCount || 0}} 词</text>
+        </view>
+      </view>
+      <view class="empty-mini" wx:else>
+        <text>你还没有该学科的单元，先去创建吧</text>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="btn-secondary" bindtap="closeShareModal">取消</button>
+      <button class="btn-primary" bindtap="submitShare" loading="{{sharing}}" disabled="{{sharing || !selectedShareUnitId}}">共享</button>
+    </view>
+  </view>
+</view>

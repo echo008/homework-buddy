@@ -1,0 +1,262 @@
+// pages/class/class.js - 班级共享页
+const {
+  getMyClasses,
+  createClass,
+  joinClass,
+  getClassDetail,
+  shareUnitToClass,
+  getManagedUnits
+} = require('../../utils/cloudApi.js')
+
+Page({
+  data: {
+    view: 'list', // list | detail
+    classes: [],
+    loading: false,
+
+    // 创建班级
+    showCreateModal: false,
+    creating: false,
+    createForm: {
+      name: '',
+      subject: 'english'
+    },
+    subjectTabs: [
+      { key: 'english', label: '英语' },
+      { key: 'chinese', label: '语文' }
+    ],
+
+    // 加入班级
+    joinCode: '',
+    joining: false,
+
+    // 班级详情
+    currentClass: null,
+    detailLoading: false,
+
+    // 共享单元
+    showShareModal: false,
+    myUnits: [],
+    selectedShareUnitId: '',
+    sharing: false
+  },
+
+  onLoad() {
+    this.loadClasses()
+  },
+
+  onShow() {
+    if (this.data.view === 'list') {
+      this.loadClasses()
+    } else if (this.data.currentClass) {
+      this.loadClassDetail(this.data.currentClass._id)
+    }
+  },
+
+  async loadClasses() {
+    this.setData({ loading: true })
+    try {
+      const res = await getMyClasses()
+      if (res.code === 0) {
+        this.setData({ classes: res.data || [] })
+      } else {
+        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+      }
+    } catch (err) {
+      wx.showToast({ title: '班级加载失败', icon: 'none' })
+    } finally {
+      this.setData({ loading: false })
+    }
+  },
+
+  // ========== 创建班级 ==========
+  openCreateModal() {
+    this.setData({
+      showCreateModal: true,
+      createForm: { name: '', subject: 'english' }
+    })
+  },
+
+  closeCreateModal() {
+    this.setData({ showCreateModal: false })
+  },
+
+  onCreateInput(e) {
+    this.setData({ 'createForm.name': e.detail.value })
+  },
+
+  onCreateSubjectChange(e) {
+    const subject = e.currentTarget.dataset.key
+    this.setData({ 'createForm.subject': subject })
+  },
+
+  async submitCreate() {
+    const { createForm } = this.data
+    if (!createForm.name.trim()) {
+      wx.showToast({ title: '班级名称不能为空', icon: 'none' })
+      return
+    }
+
+    this.setData({ creating: true })
+    wx.showLoading({ title: '创建中...' })
+
+    try {
+      const res = await createClass(createForm.name.trim(), createForm.subject)
+      if (res.code !== 0) {
+        wx.showToast({ title: res.message || '创建失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '创建成功', icon: 'success' })
+      this.closeCreateModal()
+      this.loadClasses()
+    } catch (err) {
+      wx.showToast({ title: '创建失败', icon: 'none' })
+    } finally {
+      this.setData({ creating: false })
+      wx.hideLoading()
+    }
+  },
+
+  // ========== 加入班级 ==========
+  onJoinInput(e) {
+    this.setData({ joinCode: e.detail.value })
+  },
+
+  async submitJoin() {
+    const { joinCode } = this.data
+    if (!joinCode.trim()) {
+      wx.showToast({ title: '请输入班级码', icon: 'none' })
+      return
+    }
+
+    this.setData({ joining: true })
+    wx.showLoading({ title: '加入中...' })
+
+    try {
+      const res = await joinClass(joinCode.trim())
+      if (res.code !== 0) {
+        wx.showToast({ title: res.message || '加入失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '加入成功', icon: 'success' })
+      this.setData({ joinCode: '' })
+      this.loadClasses()
+    } catch (err) {
+      wx.showToast({ title: '加入失败', icon: 'none' })
+    } finally {
+      this.setData({ joining: false })
+      wx.hideLoading()
+    }
+  },
+
+  // ========== 班级详情 ==========
+  enterClass(e) {
+    const cls = e.currentTarget.dataset.cls
+    this.setData({ view: 'detail', currentClass: cls })
+    this.loadClassDetail(cls._id)
+  },
+
+  backToList() {
+    this.setData({ view: 'list', currentClass: null })
+    this.loadClasses()
+  },
+
+  async loadClassDetail(classId) {
+    this.setData({ detailLoading: true })
+    try {
+      const res = await getClassDetail(classId)
+      if (res.code === 0) {
+        this.setData({ currentClass: res.data })
+      } else {
+        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+      }
+    } catch (err) {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      this.setData({ detailLoading: false })
+    }
+  },
+
+  async copyCode() {
+    const code = this.data.currentClass && this.data.currentClass.code
+    if (!code) return
+    try {
+      await wx.setClipboardData({ data: code })
+      wx.showToast({ title: '班级码已复制', icon: 'success' })
+    } catch (err) {
+      wx.showToast({ title: '复制失败', icon: 'none' })
+    }
+  },
+
+  // ========== 共享单元 ==========
+  async openShareModal() {
+    const { currentClass } = this.data
+    if (!currentClass) return
+
+    this.setData({ showShareModal: true, selectedShareUnitId: '', sharing: false })
+    wx.showLoading({ title: '加载单元...' })
+
+    try {
+      const res = await getManagedUnits(currentClass.subject)
+      if (res.code === 0) {
+        this.setData({ myUnits: res.data || [] })
+      } else {
+        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+      }
+    } catch (err) {
+      wx.showToast({ title: '单元加载失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  closeShareModal() {
+    this.setData({ showShareModal: false, selectedShareUnitId: '' })
+  },
+
+  selectShareUnit(e) {
+    const unitId = e.currentTarget.dataset.id
+    this.setData({ selectedShareUnitId: unitId })
+  },
+
+  async submitShare() {
+    const { currentClass, selectedShareUnitId } = this.data
+    if (!selectedShareUnitId) {
+      wx.showToast({ title: '请选择一个单元', icon: 'none' })
+      return
+    }
+
+    this.setData({ sharing: true })
+    wx.showLoading({ title: '共享中...' })
+
+    try {
+      const res = await shareUnitToClass(currentClass._id, selectedShareUnitId)
+      if (res.code !== 0) {
+        wx.showToast({ title: res.message || '共享失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '共享成功', icon: 'success' })
+      this.closeShareModal()
+      this.loadClassDetail(currentClass._id)
+    } catch (err) {
+      wx.showToast({ title: '共享失败', icon: 'none' })
+    } finally {
+      this.setData({ sharing: false })
+      wx.hideLoading()
+    }
+  },
+
+  onShareAppMessage() {
+    const cls = this.data.currentClass
+    if (cls) {
+      return {
+        title: `加入班级「${cls.name}」，一起听写吧！班级码：${cls.code}`,
+        path: '/pages/class/class'
+      }
+    }
+    return {
+      title: 'Homework Buddy · 智听 - 一起听写',
+      path: '/pages/index/index'
+    }
+  }
+})

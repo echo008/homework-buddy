@@ -1,5 +1,5 @@
 // pages/scan/scan.js - 拍照识字导入页
-const { parseOcrImage } = require('../../utils/aiClient.js')
+const { parseOcrImage } = require('../../utils/cloudApi.js')
 
 Page({
   data: {

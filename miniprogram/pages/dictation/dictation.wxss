@@ -1,6 +1,9 @@
-/* pages/dictation/dictation.wxss */
+/* pages/dictation/dictation.wxss - 听写进行页样式 */
+
 .dictation-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .progress-bar {
@@ -10,51 +13,109 @@
 .progress-text {
   text-align: center;
   font-size: 28rpx;
-  color: #888;
+  color: var(--text-secondary);
   margin-bottom: 16rpx;
 }
 
 .progress-track {
-  height: 12rpx;
-  background: #e8e8e8;
-  border-radius: 6rpx;
+  height: 16rpx;
+  background: var(--border);
+  border-radius: 8rpx;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #4a90d9;
-  border-radius: 6rpx;
+  background: linear-gradient(90deg, var(--primary), var(--primary-soft));
+  border-radius: 8rpx;
   transition: width 0.3s;
 }
 
 .question-card {
   text-align: center;
-  padding: 60rpx 30rpx;
+  padding: 60rpx 40rpx;
 }
 
 .question-prompt {
-  font-size: 72rpx;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 40rpx;
+  font-size: 80rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 30rpx;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+.question-tags {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 30rpx;
 }
 
 .replay-btn {
-  display: inline-block;
-  padding: 16rpx 40rpx;
-  background: #f0f4fa;
-  color: #4a90d9;
-  border-radius: 40rpx;
-  font-size: 28rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 48rpx;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.replay-btn.playing {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.replay-icon {
+  font-size: 32rpx;
+}
+
+.countdown-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  padding: 16rpx;
+  background: var(--warning-light);
+  border-radius: var(--radius);
+}
+
+.countdown-num {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--warning);
+}
+
+.countdown-text {
+  font-size: 26rpx;
+  color: var(--warning);
+}
+
+.answer-card {
+  flex: 1;
 }
 
 .answer-input {
   width: 100%;
-  height: 96rpx;
-  border: 2rpx solid #eee;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  font-size: 34rpx;
-  background: #fafbfc;
+  height: 120rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 32rpx;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--bg);
+}
+
+.answer-input:focus {
+  border-color: var(--primary);
+}
+
+.btn-next {
+  margin-top: 32rpx;
+  width: 100%;
 }

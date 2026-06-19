@@ -32,7 +32,14 @@ Page({
     })
   },
 
-  // 保存听写记录
+  onShareAppMessage() {
+    const { accuracy, total, correctCount } = this.data
+    return {
+      title: `我在智听听写中得了 ${accuracy} 分，答对 ${correctCount}/${total} 题，快来一起挑战吧！`,
+      path: '/pages/index/index'
+    }
+  },
+
   async saveLog(data) {
     try {
       const app = getApp()
@@ -57,7 +64,6 @@ Page({
     }
   },
 
-  // 一键重测错题
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
       wx.showToast({ title: '没有错题，棒极了！', icon: 'none' })
@@ -82,6 +88,10 @@ Page({
         })
       }
     })
+  },
+
+  onRestart() {
+    wx.reLaunch({ url: '/pages/index/index' })
   },
 
   onBackHome() {

@@ -1,4 +1,9 @@
-/* pages/profile/profile.wxss */
+/* pages/profile/profile.wxss - 我的页样式 */
+
+.profile-page {
+  padding-bottom: 60rpx;
+}
+
 .profile-header {
   display: flex;
   flex-direction: column;
@@ -7,27 +12,106 @@
 }
 
 .avatar {
-  width: 120rpx;
-  height: 120rpx;
+  width: 140rpx;
+  height: 140rpx;
   border-radius: 50%;
-  background: #e8f1fc;
+  background: var(--primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 60rpx;
+  font-size: 72rpx;
   margin-bottom: 20rpx;
 }
 
 .profile-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8rpx;
 }
 
+.profile-desc {
+  font-size: 26rpx;
+  color: var(--text-muted);
+}
+
+/* 统计 */
+.stats-card {
+  display: flex;
+  justify-content: space-around;
+  padding: 32rpx 0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+/* 菜单 */
+.menu-card {
+  padding: 12rpx 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--border);
+  background: transparent;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  line-height: 1;
+}
+
+.menu-item::after {
+  border: none;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-icon {
+  width: 56rpx;
+  font-size: 36rpx;
+  text-align: center;
+}
+
+.menu-label {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.menu-arrow {
+  font-size: 40rpx;
+  color: var(--text-muted);
+}
+
+.share-item {
+  padding: 28rpx 0;
+}
+
+/* 最近听写 */
 .log-item {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 16rpx;
 }
 
 .log-top {
@@ -36,33 +120,38 @@
   align-items: center;
 }
 
-.log-subject {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #4a90d9;
+.log-subject-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.log-mode {
+  font-size: 24rpx;
+  color: var(--text-muted);
 }
 
 .log-accuracy {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #09bb07;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: var(--accent);
 }
 
 .log-bottom {
   display: flex;
   justify-content: space-between;
   font-size: 24rpx;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .log-time {
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .empty {
   text-align: center;
   padding: 60rpx 0;
-  color: #999;
+  color: var(--text-muted);
   font-size: 28rpx;
   display: flex;
   flex-direction: column;
@@ -71,5 +160,5 @@
 
 .empty-tip {
   font-size: 24rpx;
-  color: #bbb;
+  color: var(--text-muted);
 }

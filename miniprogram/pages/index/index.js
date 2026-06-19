@@ -1,6 +1,6 @@
 // pages/index/index.js - 首页：听写配置
 const { getUnits } = require('../../utils/db.js')
-const { getDictationList, addWord } = require('../../utils/aiClient.js')
+const { getDictationList, saveWord } = require('../../utils/cloudApi.js')
 
 Page({
   data: {
@@ -192,9 +192,17 @@ Page({
     })
   },
 
-  // 跳转我的
-  onProfile() {
-    wx.switchTab && wx.navigateTo({ url: '/pages/profile/profile' })
+  // 快捷入口
+  goUnits() {
+    wx.navigateTo({ url: '/pages/units/units' })
+  },
+
+  goClass() {
+    wx.navigateTo({ url: '/pages/class/class' })
+  },
+
+  goProfile() {
+    wx.navigateTo({ url: '/pages/profile/profile' })
   },
 
   // ========== 手动加词 ==========
@@ -250,7 +258,7 @@ Page({
     wx.showLoading({ title: '添加中...' })
 
     try {
-      const res = await addWord({
+      const res = await saveWord({
         word: addForm.word.trim(),
         meaning: addForm.meaning.trim(),
         unitId,

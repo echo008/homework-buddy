@@ -2,9 +2,13 @@
 <view class="container result-page">
   <!-- 成绩概览 -->
   <view class="card score-card">
-    <view class="score-circle">
-      <text class="score-num">{{accuracy}}</text>
-      <text class="score-unit">%</text>
+    <view class="score-circle-wrapper">
+      <view class="score-circle" style="--accuracy: {{accuracy}}%;">
+        <view class="score-inner">
+          <text class="score-num">{{accuracy}}</text>
+          <text class="score-unit">%</text>
+        </view>
+      </view>
     </view>
     <view class="score-summary">
       <view class="summary-item">
@@ -20,6 +24,7 @@
         <text class="summary-label">总数</text>
       </view>
     </view>
+    <view class="score-rating">{{accuracy >= 90 ? '太棒了！' : accuracy >= 60 ? '继续加油！' : '下次会更好！'}}</view>
   </view>
 
   <!-- 错题列表 -->
@@ -35,7 +40,8 @@
   </view>
 
   <view class="card empty-wrong" wx:elif="{{total > 0}}">
-    <text>🎉 全部答对，太棒了！</text>
+    <text class="empty-icon">🎉</text>
+    <text>全部答对，太棒了！</text>
   </view>
 
   <!-- 操作 -->
@@ -43,4 +49,5 @@
     <button class="btn-secondary" bindtap="onBackHome">返回首页</button>
     <button class="btn-primary" bindtap="onRetryWrong" wx:if="{{wrongWords.length > 0}}">重测错题</button>
   </view>
+  <button class="btn-secondary btn-share" open-type="share">分享给好友</button>
 </view>

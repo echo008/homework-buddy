@@ -4,12 +4,15 @@
     "pages/scan/scan",
     "pages/dictation/dictation",
     "pages/result/result",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/units/units",
+    "pages/words/words",
+    "pages/class/class"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#4a90d9",
-    "navigationBarTitleText": "智听 · Homework Buddy",
+    "navigationBarBackgroundColor": "#4f46e5",
+    "navigationBarTitleText": "Homework Buddy · 智听",
     "navigationBarTextStyle": "white"
   },
   "style": "v2",
