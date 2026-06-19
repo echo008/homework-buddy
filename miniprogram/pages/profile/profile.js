@@ -1,6 +1,22 @@
 // pages/profile/profile.js - 我的/词库管理
 const { getUserLogs } = require('../../utils/db.js')
 
+// 时间格式化：ISO/Date → 友好显示（如 "2026-06-19 14:30"）
+function formatTime(input) {
+  if (!input) return ''
+  let d
+  if (typeof input === 'object' && input instanceof Date) {
+    d = input
+  } else if (typeof input === 'object' && input.$date) {
+    d = new Date(input.$date)
+  } else {
+    d = new Date(input)
+  }
+  if (isNaN(d.getTime())) return ''
+  const pad = (n) => (n < 10 ? '0' + n : '' + n)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 Page({
   data: {
     logs: [],
@@ -16,6 +32,10 @@ Page({
     this.loadLogs()
   },
 
+  onPullDownRefresh() {
+    this.loadLogs().then(() => wx.stopPullDownRefresh()).catch(() => wx.stopPullDownRefresh())
+  },
+
   async loadLogs() {
     try {
       const app = getApp()
@@ -25,8 +45,13 @@ Page({
         return
       }
       const logs = await getUserLogs(openid, 50)
-      const stats = this.computeStats(logs)
-      this.setData({ logs, stats, loading: false })
+      // 时间格式化，避免直接显示 ISO 字符串
+      const formatted = (logs || []).map((log) => ({
+        ...log,
+        createdAtText: formatTime(log.createdAt)
+      }))
+      const stats = this.computeStats(formatted)
+      this.setData({ logs: formatted, stats, loading: false })
     } catch (err) {
       this.setData({ loading: false })
       wx.showToast({ title: '记录加载失败', icon: 'none' })

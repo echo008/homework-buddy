@@ -1,5 +1,5 @@
 // cloudfunctions/classManage/index.js
-// 班级共享：创建、加入、查看、共享词库
+// 班级共享：创建、加入、查看、共享词库、退出班级
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
@@ -8,6 +8,7 @@ const db = cloud.database()
 const _ = db.command
 
 const ALLOWED_SUBJECTS = ['english', 'chinese']
+const MAX_MEMBERS = 200
 
 exports.main = async (event) => {
   const { action } = event
@@ -28,6 +29,10 @@ exports.main = async (event) => {
         return await shareUnit(event.classId, event.unitId, openid)
       case 'unshareUnit':
         return await unshareUnit(event.classId, event.unitId, openid)
+      case 'leave':
+        return await leaveClass(event.classId, openid)
+      case 'dismiss':
+        return await dismissClass(event.classId, openid)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -81,6 +86,12 @@ async function joinClass(code, openid) {
     return { code: 0, message: '你已在班级中', data: { classId: cls._id } }
   }
 
+  // 班级人数上限保护
+  const memberCount = (cls.members || []).length
+  if (memberCount >= MAX_MEMBERS) {
+    return { code: 4, message: '班级人数已满' }
+  }
+
   await db.collection('classes').doc(cls._id).update({
     data: {
       members: _.push(openid),
@@ -97,6 +108,12 @@ async function getClassDetail(classId, openid) {
   const { data } = await db.collection('classes').doc(classId).get()
   if (!data) {
     return { code: 3, message: '班级不存在' }
+  }
+
+  // 权限校验：仅成员可查看详情
+  const members = data.members || []
+  if (!members.includes(openid) && data.createdBy !== openid) {
+    return { code: 5, message: '你不在该班级中' }
   }
 
   // 共享单元列表
@@ -116,6 +133,7 @@ async function getClassDetail(classId, openid) {
 }
 
 async function getMyClasses(openid) {
+  // members 是数组，用 _.in 匹配
   const { data } = await db.collection('classes')
     .where(_.or([
       { createdBy: openid },
@@ -132,11 +150,26 @@ async function shareUnit(classId, unitId, openid) {
     return { code: 2, message: '缺少班级 ID 或单元 ID' }
   }
 
-  const cls = await db.collection('classes').doc(classId).get()
-  if (!cls.data) return { code: 3, message: '班级不存在' }
+  const clsRes = await db.collection('classes').doc(classId).get()
+  const cls = clsRes.data
+  if (!cls) return { code: 3, message: '班级不存在' }
 
-  // 仅创建者或班级成员可共享自己创建的单元
-  const shared = cls.data.sharedUnitIds || []
+  // 权限校验：仅班级成员可共享
+  const members = cls.members || []
+  if (!members.includes(openid) && cls.createdBy !== openid) {
+    return { code: 5, message: '你不在该班级中，无法共享' }
+  }
+
+  // 校验单元是否属于当前用户
+  const unitRes = await db.collection('units').doc(unitId).get()
+  if (!unitRes.data) {
+    return { code: 4, message: '单元不存在' }
+  }
+  if (unitRes.data.createdBy !== openid) {
+    return { code: 5, message: '只能共享自己创建的单元' }
+  }
+
+  const shared = cls.sharedUnitIds || []
   if (shared.includes(unitId)) {
     return { code: 0, message: '该单元已在共享列表中' }
   }
@@ -156,6 +189,19 @@ async function unshareUnit(classId, unitId, openid) {
     return { code: 2, message: '缺少班级 ID 或单元 ID' }
   }
 
+  const clsRes = await db.collection('classes').doc(classId).get()
+  const cls = clsRes.data
+  if (!cls) return { code: 3, message: '班级不存在' }
+
+  // 权限校验：仅创建者或单元所有者可取消共享
+  const isCreator = cls.createdBy === openid
+  const unitRes = await db.collection('units').doc(unitId).get()
+  const isUnitOwner = unitRes.data && unitRes.data.createdBy === openid
+
+  if (!isCreator && !isUnitOwner) {
+    return { code: 5, message: '无权取消共享' }
+  }
+
   await db.collection('classes').doc(classId).update({
     data: {
       sharedUnitIds: _.pull(unitId),
@@ -166,13 +212,60 @@ async function unshareUnit(classId, unitId, openid) {
   return { code: 0, message: '取消共享成功' }
 }
 
+// 退出班级
+async function leaveClass(classId, openid) {
+  if (!classId) return { code: 2, message: '缺少班级 ID' }
+
+  const clsRes = await db.collection('classes').doc(classId).get()
+  const cls = clsRes.data
+  if (!cls) return { code: 3, message: '班级不存在' }
+
+  // 创建者不能退出（需解散班级）
+  if (cls.createdBy === openid) {
+    return { code: 6, message: '班级创建者请使用"解散班级"功能' }
+  }
+
+  const members = cls.members || []
+  if (!members.includes(openid)) {
+    return { code: 0, message: '你已不在该班级中' }
+  }
+
+  await db.collection('classes').doc(classId).update({
+    data: {
+      members: _.pull(openid),
+      updatedAt: new Date().toISOString()
+    }
+  })
+
+  return { code: 0, message: '已退出班级' }
+}
+
+// 解散班级（仅创建者可操作，删除班级记录，不影响单元与单词）
+async function dismissClass(classId, openid) {
+  if (!classId) return { code: 2, message: '缺少班级 ID' }
+
+  const clsRes = await db.collection('classes').doc(classId).get()
+  const cls = clsRes.data
+  if (!cls) return { code: 3, message: '班级不存在' }
+
+  if (cls.createdBy !== openid) {
+    return { code: 5, message: '只有班级创建者可以解散班级' }
+  }
+
+  await db.collection('classes').doc(classId).remove()
+
+  return { code: 0, message: '班级已解散' }
+}
+
 async function generateUniqueCode() {
   let code = ''
   let exists = true
-  while (exists) {
+  let attempts = 0
+  while (exists && attempts < 10) {
     code = Math.floor(100000 + Math.random() * 900000).toString()
     const { total } = await db.collection('classes').where({ code }).count()
     exists = total > 0
+    attempts++
   }
   return code
 }

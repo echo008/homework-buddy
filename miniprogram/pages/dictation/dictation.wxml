@@ -1,5 +1,11 @@
 <!--pages/dictation/dictation.wxml - 听写进行页-->
-<view class="container dictation-page">
+<view class="container dictation-page" wx:if="{{dataReady}}">
+  <!-- 顶部导航 -->
+  <view class="top-nav">
+    <view class="nav-back" bindtap="onBack">‹ 退出</view>
+    <view class="nav-skip" bindtap="onSkip">跳过</view>
+  </view>
+
   <!-- 进度 -->
   <view class="progress-bar">
     <view class="progress-text">第 {{currentIndex + 1}} 题 / 共 {{total}} 题</view>
@@ -10,11 +16,22 @@
 
   <!-- 题目区 -->
   <view class="card question-card" wx:if="{{questions.length > 0}}">
-    <view class="question-prompt">{{questions[currentIndex].prompt}}</view>
+    <!-- 拼音模式：大字显示拼音，不依赖语音 -->
+    <view class="question-prompt" wx:if="{{questions[currentIndex].promptType === 'pinyin'}}">{{questions[currentIndex].prompt}}</view>
+    <!-- 英文/中文模式：正常显示（语音播报为主） -->
+    <view class="question-prompt" wx:else>{{questions[currentIndex].prompt}}</view>
+
     <view class="question-tags">
       <text class="tag tag-primary" wx:if="{{hasCustomAudio}}">自定义读音</text>
+      <text class="tag tag-accent" wx:elif="{{questions[currentIndex].promptType === 'pinyin'}}">看拼音写汉字</text>
       <text class="tag tag-accent" wx:else>AI 朗读</text>
     </view>
+
+    <!-- TTS 不可用时的文字提示 -->
+    <view class="tts-warning" wx:if="{{ttsUnavailable}}">
+      语音播报不可用，请看上方文字作答
+    </view>
+
     <view class="replay-btn {{isPlaying ? 'playing' : ''}}" bindtap="onReplay">
       <text class="replay-icon">{{isPlaying ? '🔊' : '▶️'}}</text>
       <text>{{isPlaying ? '播放中...' : '再听一遍'}}</text>
@@ -24,7 +41,7 @@
   <!-- 倒计时 -->
   <view class="countdown-card" wx:if="{{countdown > 0}}">
     <text class="countdown-num">{{countdown}}</text>
-    <text class="countdown-text">秒后自动播放下一题</text>
+    <text class="countdown-text">秒后自动播报</text>
   </view>
 
   <!-- 作答区 -->
@@ -46,4 +63,20 @@
   <button class="btn-primary btn-next" bindtap="onNext">
     {{currentIndex + 1 < total ? '下一题' : '完成听写'}}
   </button>
+</view>
+
+<!-- 加载中 -->
+<view class="container loading-page" wx:else>
+  <view class="loading-text">正在准备题目...</view>
+</view>
+
+<!-- 退出确认弹窗 -->
+<view class="modal-mask" wx:if="{{showExitConfirm}}" bindtap="onExitCancel"></view>
+<view class="exit-modal" wx:if="{{showExitConfirm}}">
+  <view class="exit-title">确定要退出听写吗？</view>
+  <view class="exit-desc">当前进度不会保存</view>
+  <view class="exit-actions">
+    <button class="btn-secondary" bindtap="onExitCancel">继续听写</button>
+    <button class="btn-primary" bindtap="onExitConfirm">确定退出</button>
+  </view>
 </view>

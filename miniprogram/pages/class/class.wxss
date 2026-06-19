@@ -264,3 +264,8 @@
   width: 100%;
   margin-top: 20rpx;
 }
+
+.btn-leave {
+  color: var(--danger);
+  border-color: var(--danger-light);
+}

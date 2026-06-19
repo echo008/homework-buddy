@@ -13,7 +13,10 @@
 
   <!-- 单元多选 -->
   <view class="card">
-    <view class="section-title">选择单元</view>
+    <view class="section-title section-title-between">
+      <text>选择单元</text>
+      <text class="btn-text" wx:if="{{units.length > 0}}" bindtap="onToggleAll">{{selectedUnitIds.length === units.length ? '取消全选' : '全选'}}</text>
+    </view>
     <view class="unit-grid" wx:if="{{units.length > 0}}">
       <view
         wx:for="{{units}}"
@@ -28,7 +31,7 @@
     </view>
     <view class="empty-tip" wx:else>
       <text>暂无单元数据</text>
-      <view class="empty-btn" bindtap="onScan">去拍照导入</view>
+      <view class="empty-btn" bindtap="goUnits">去创建单元</view>
     </view>
   </view>
 

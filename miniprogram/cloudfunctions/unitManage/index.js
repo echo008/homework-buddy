@@ -23,7 +23,7 @@ exports.main = async (event) => {
       case 'delete':
         return await deleteUnit(event.unitId, openid)
       case 'list':
-        return await listUnits(event.subject)
+        return await listUnits(event.subject, openid)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -66,6 +66,16 @@ async function updateUnit(unit = {}, openid) {
   const { _id } = unit
   if (!_id) return { code: 2, message: '缺少单元 ID' }
 
+  // 权限校验：仅创建者可修改自己的单元
+  const existing = await db.collection('units').doc(_id).get()
+  const current = existing.data || {}
+  if (!current._id) {
+    return { code: 3, message: '单元不存在' }
+  }
+  if (current.createdBy !== openid) {
+    return { code: 5, message: '无权修改他人的单元' }
+  }
+
   const updateData = {}
   const fields = ['name', 'subject', 'grade', 'semester', 'textbook', 'order']
   fields.forEach((field) => {
@@ -86,6 +96,16 @@ async function updateUnit(unit = {}, openid) {
 
 async function deleteUnit(unitId, openid) {
   if (!unitId) return { code: 2, message: '缺少单元 ID' }
+
+  // 权限校验：仅创建者可删除自己的单元
+  const existing = await db.collection('units').doc(unitId).get()
+  const current = existing.data || {}
+  if (!current._id) {
+    return { code: 3, message: '单元不存在' }
+  }
+  if (current.createdBy !== openid) {
+    return { code: 5, message: '无权删除他人的单元' }
+  }
 
   // 删除单元下的所有单词，避免产生孤立数据
   const batchLimit = 100
@@ -110,20 +130,72 @@ async function deleteUnit(unitId, openid) {
     if (data.length < batchLimit) hasMore = false
   }
 
+  // 同步从所有班级的共享列表中移除该单元
+  try {
+    const { data: classes } = await db.collection('classes')
+      .where({ sharedUnitIds: unitId })
+      .field({ _id: true })
+      .get()
+    for (const cls of classes) {
+      await db.collection('classes').doc(cls._id).update({
+        data: { sharedUnitIds: _.pull(unitId), updatedAt: new Date().toISOString() }
+      })
+    }
+  } catch (err) {
+    console.error('清理班级共享引用失败:', err)
+  }
+
   await db.collection('units').doc(unitId).remove()
 
   return { code: 0, message: '删除成功', data: { removedWords: removed } }
 }
 
-async function listUnits(subject) {
+async function listUnits(subject, openid) {
   const where = {}
   if (ALLOWED_SUBJECTS.includes(subject)) where.subject = subject
 
-  const { data } = await db.collection('units')
-    .where(where)
+  // 查询当前用户创建的单元
+  const { data: myUnits } = await db.collection('units')
+    .where({ ...where, createdBy: openid })
     .orderBy('order', 'asc')
     .orderBy('createdAt', 'desc')
     .get()
 
-  return { code: 0, data }
+  // 查询当前用户所在班级共享的单元
+  const { data: myClasses } = await db.collection('classes')
+    .where(_.or([
+      { createdBy: openid },
+      { members: openid }
+    ]))
+    .field({ sharedUnitIds: true })
+    .get()
+
+  const sharedUnitIds = new Set()
+  myClasses.forEach(cls => {
+    (cls.sharedUnitIds || []).forEach(id => sharedUnitIds.add(id))
+  })
+
+  let sharedUnits = []
+  if (sharedUnitIds.size > 0) {
+    const res = await db.collection('units')
+      .where({ ...where, _id: _.in(Array.from(sharedUnitIds)) })
+      .orderBy('order', 'asc')
+      .get()
+    sharedUnits = res.data
+  }
+
+  // 合并去重（自己创建的 + 班级共享的）
+  const seenIds = new Set(myUnits.map(u => u._id))
+  const merged = [...myUnits]
+  sharedUnits.forEach(u => {
+    if (!seenIds.has(u._id)) {
+      seenIds.add(u._id)
+      merged.push(u)
+    }
+  })
+
+  // 按排序号排序
+  merged.sort((a, b) => (a.order || 0) - (b.order || 0))
+
+  return { code: 0, data: merged }
 }

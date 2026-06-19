@@ -31,10 +31,6 @@ function getDictationList(params) {
   return callCloud('getDictationList', params)
 }
 
-function addWord(wordData) {
-  return callCloud('addWord', wordData)
-}
-
 // ========== 单元管理 ==========
 
 function saveUnit(unit) {
@@ -91,11 +87,18 @@ function unshareUnitFromClass(classId, unitId) {
   return callCloud('classManage', { action: 'unshareUnit', classId, unitId })
 }
 
+function leaveClass(classId) {
+  return callCloud('classManage', { action: 'leave', classId })
+}
+
+function dismissClass(classId) {
+  return callCloud('classManage', { action: 'dismiss', classId })
+}
+
 module.exports = {
   callCloud,
   parseOcrImage,
   getDictationList,
-  addWord,
   saveUnit,
   deleteUnit,
   getManagedUnits,
@@ -107,5 +110,7 @@ module.exports = {
   getClassDetail,
   getMyClasses,
   shareUnitToClass,
-  unshareUnitFromClass
+  unshareUnitFromClass,
+  leaveClass,
+  dismissClass
 }

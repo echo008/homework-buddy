@@ -55,7 +55,7 @@
       </view>
       <view class="log-bottom">
         <text>{{item.correctCount}}/{{item.totalWords}} 正确</text>
-        <text class="log-time">{{item.createdAt}}</text>
+        <text class="log-time">{{item.createdAtText}}</text>
       </view>
     </view>
   </view>

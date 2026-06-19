@@ -5,6 +5,9 @@ const {
   joinClass,
   getClassDetail,
   shareUnitToClass,
+  unshareUnitFromClass,
+  leaveClass,
+  dismissClass,
   getManagedUnits
 } = require('../../utils/cloudApi.js')
 
@@ -33,6 +36,7 @@ Page({
     // 班级详情
     currentClass: null,
     detailLoading: false,
+    isCreator: false,
 
     // 共享单元
     showShareModal: false,
@@ -50,6 +54,16 @@ Page({
       this.loadClasses()
     } else if (this.data.currentClass) {
       this.loadClassDetail(this.data.currentClass._id)
+    }
+  },
+
+  onPullDownRefresh() {
+    if (this.data.view === 'list') {
+      this.loadClasses().then(() => wx.stopPullDownRefresh())
+    } else if (this.data.currentClass) {
+      this.loadClassDetail(this.data.currentClass._id).then(() => wx.stopPullDownRefresh())
+    } else {
+      wx.stopPullDownRefresh()
     }
   },
 
@@ -157,7 +171,7 @@ Page({
   },
 
   backToList() {
-    this.setData({ view: 'list', currentClass: null })
+    this.setData({ view: 'list', currentClass: null, isCreator: false })
     this.loadClasses()
   },
 
@@ -166,7 +180,12 @@ Page({
     try {
       const res = await getClassDetail(classId)
       if (res.code === 0) {
-        this.setData({ currentClass: res.data })
+        const app = getApp()
+        const openid = app.globalData.openid || ''
+        this.setData({
+          currentClass: res.data,
+          isCreator: res.data.createdBy === openid
+        })
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }
@@ -188,6 +207,99 @@ Page({
     }
   },
 
+  // 退出班级
+  async onLeaveClass() {
+    const { currentClass } = this.data
+    if (!currentClass) return
+
+    const res = await wx.showModal({
+      title: '确认退出',
+      content: `退出班级「${currentClass.name}」后将无法查看共享词库，确定吗？`,
+      confirmColor: '#ef4444'
+    })
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '退出中...' })
+    try {
+      const result = await leaveClass(currentClass._id)
+      if (result.code !== 0) {
+        wx.showToast({ title: result.message || '退出失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '已退出班级', icon: 'success' })
+      this.backToList()
+    } catch (err) {
+      wx.showToast({ title: '退出失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 取消共享
+  async onUnshare(e) {
+    const unitId = e.currentTarget.dataset.id
+    const { currentClass } = this.data
+    if (!currentClass) return
+
+    const res = await wx.showModal({
+      title: '确认取消共享',
+      content: '取消后班级成员将无法看到该单元，确定吗？',
+      confirmColor: '#ef4444'
+    })
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '操作中...' })
+    try {
+      const result = await unshareUnitFromClass(currentClass._id, unitId)
+      if (result.code !== 0) {
+        wx.showToast({ title: result.message || '操作失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '已取消共享', icon: 'success' })
+      this.loadClassDetail(currentClass._id)
+    } catch (err) {
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 去听写：跳转首页并带上学科
+  goDictation() {
+    const { currentClass } = this.data
+    if (!currentClass) return
+    wx.reLaunch({ url: '/pages/index/index' })
+  },
+
+  // 解散班级（仅创建者）
+  async onDismissClass() {
+    const { currentClass } = this.data
+    if (!currentClass) return
+
+    const res = await wx.showModal({
+      title: '确认解散班级',
+      content: `解散班级「${currentClass.name}」后，所有成员将无法再访问共享词库，且无法恢复，确定吗？`,
+      confirmText: '解散',
+      confirmColor: '#ef4444'
+    })
+    if (!res.confirm) return
+
+    wx.showLoading({ title: '解散中...' })
+    try {
+      const result = await dismissClass(currentClass._id)
+      if (result.code !== 0) {
+        wx.showToast({ title: result.message || '解散失败', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '班级已解散', icon: 'success' })
+      this.backToList()
+    } catch (err) {
+      wx.showToast({ title: '解散失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
   // ========== 共享单元 ==========
   async openShareModal() {
     const { currentClass } = this.data
@@ -199,7 +311,11 @@ Page({
     try {
       const res = await getManagedUnits(currentClass.subject)
       if (res.code === 0) {
-        this.setData({ myUnits: res.data || [] })
+        const app = getApp()
+        const openid = app.globalData.openid || ''
+        // 仅显示当前用户自己创建的单元（共享单元无法再次共享，避免误选报错）
+        const myOwnUnits = (res.data || []).filter(u => u.createdBy === openid)
+        this.setData({ myUnits: myOwnUnits })
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }

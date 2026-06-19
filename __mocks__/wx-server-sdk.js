@@ -15,7 +15,17 @@ const mockDb = {
   get: jest.fn(() => Promise.resolve({ data: words })),
   count: jest.fn(() => Promise.resolve({ total: words.length })),
   add: jest.fn((doc) => Promise.resolve({ _id: `new_${Date.now()}` })),
-  command: { in: jest.fn((arr) => ({ $in: arr })) }
+  doc: jest.fn(() => ({
+    get: jest.fn(() => Promise.resolve({ data: words[0] })),
+    update: jest.fn(() => Promise.resolve({})),
+    remove: jest.fn(() => Promise.resolve({}))
+  })),
+  command: {
+    in: jest.fn((arr) => ({ $in: arr })),
+    or: jest.fn((cond) => ({ $or: cond })),
+    pull: jest.fn((val) => ({ $pull: val })),
+    neq: jest.fn((val) => ({ $neq: val }))
+  }
 }
 
 module.exports = {

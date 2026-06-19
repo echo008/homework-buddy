@@ -53,6 +53,16 @@ async function createWord(word = {}, openid) {
     return { code: 2, message: '学科类型不正确' }
   }
 
+  // 权限校验：仅单元创建者可往该单元添加单词
+  const unitRes = await db.collection('units').doc(unitId).get()
+  const unit = unitRes.data
+  if (!unit) {
+    return { code: 4, message: '单元不存在' }
+  }
+  if (unit.createdBy !== openid) {
+    return { code: 5, message: '无权向他人的单元添加单词' }
+  }
+
   const { total } = await db.collection('words').where({ word: text.trim(), unitId }).count()
   if (total > 0) {
     return { code: 3, message: '该单元下已存在相同单词' }
@@ -87,6 +97,16 @@ async function updateWord(word = {}, openid) {
   const { _id } = word
   if (!_id) return { code: 2, message: '缺少单词 ID' }
 
+  // 权限校验：仅创建者可修改自己的单词
+  const existing = await db.collection('words').doc(_id).get()
+  const current = existing.data || {}
+  if (!current._id) {
+    return { code: 3, message: '单词不存在' }
+  }
+  if (current.createdBy !== openid) {
+    return { code: 5, message: '无权修改他人的单词' }
+  }
+
   const updateData = {}
   const fields = ['word', 'meaning', 'pinyin', 'lesson', 'partOfSpeech', 'phonetic', 'audioUrl', 'difficulty']
   fields.forEach((field) => {
@@ -107,8 +127,6 @@ async function updateWord(word = {}, openid) {
 
   // 如果更新了 word 或 unitId，需要重新校验重复
   if (updateData.word !== undefined) {
-    const existing = await db.collection('words').doc(_id).get()
-    const current = existing.data || {}
     const unitId = word.unitId !== undefined ? word.unitId : current.unitId
     const { total } = await db.collection('words')
       .where({ word: updateData.word, unitId, _id: db.command.neq(_id) })
@@ -135,8 +153,17 @@ async function updateWord(word = {}, openid) {
 async function deleteWord(wordId, openid) {
   if (!wordId) return { code: 2, message: '缺少单词 ID' }
 
+  // 权限校验：仅创建者可删除自己的单词
   const doc = await db.collection('words').doc(wordId).get()
-  const unitId = doc.data && doc.data.unitId
+  const current = doc.data || {}
+  if (!current._id) {
+    return { code: 3, message: '单词不存在' }
+  }
+  if (current.createdBy !== openid) {
+    return { code: 5, message: '无权删除他人的单词' }
+  }
+
+  const unitId = current.unitId
 
   await db.collection('words').doc(wordId).remove()
   if (unitId) await syncUnitWordCount(unitId)

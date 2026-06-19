@@ -31,6 +31,10 @@ Page({
     this.loadUnits()
   },
 
+  onPullDownRefresh() {
+    this.loadUnits().then(() => wx.stopPullDownRefresh())
+  },
+
   onSubjectChange(e) {
     const subject = e.currentTarget.dataset.key
     this.setData({ subject })

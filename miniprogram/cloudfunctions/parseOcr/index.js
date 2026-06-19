@@ -40,6 +40,16 @@ exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID || ''
 
+  // 权限校验：仅单元创建者可往该单元导入单词
+  const unitRes = await db.collection('units').doc(unitId).get()
+  const unit = unitRes.data
+  if (!unit) {
+    return { code: 6, message: '单元不存在' }
+  }
+  if (unit.createdBy !== openid) {
+    return { code: 5, message: '无权向他人的单元导入单词' }
+  }
+
   try {
     // 1. 获取云存储图片临时访问链接
     const { fileList } = await cloud.getTempFileURL({

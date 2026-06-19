@@ -32,6 +32,10 @@
   gap: 20rpx;
 }
 
+.section-title-between {
+  justify-content: space-between;
+}
+
 .unit-chip {
   width: calc(33.333% - 14rpx);
   padding: 24rpx 12rpx;

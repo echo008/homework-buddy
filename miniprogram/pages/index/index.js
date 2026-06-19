@@ -1,6 +1,5 @@
 // pages/index/index.js - 首页：听写配置
-const { getUnits } = require('../../utils/db.js')
-const { getDictationList, saveWord } = require('../../utils/cloudApi.js')
+const { getDictationList, saveWord, getManagedUnits } = require('../../utils/cloudApi.js')
 
 Page({
   data: {
@@ -51,14 +50,12 @@ Page({
   },
 
   onLoad() {
-    this.loadUnits('english')
+    // 首次加载由 onShow 统一触发，避免重复请求
   },
 
   onShow() {
-    // 每次展示时刷新单元词数
-    if (this.data.units.length > 0) {
-      this.loadUnits(this.data.subject)
-    }
+    // 每次展示时刷新单元词数（从其他页返回后也能看到最新数据）
+    this.loadUnits(this.data.subject)
   },
 
   // 切换学科
@@ -73,16 +70,27 @@ Page({
     this.loadUnits(subject)
   },
 
-  // 加载单元列表
+  // 加载单元列表（走云函数，按当前用户 createdBy 过滤）
   async loadUnits(subject) {
     wx.showLoading({ title: '加载中...' })
     try {
-      const units = await getUnits({ subject })
+      const res = await getManagedUnits(subject)
+      const units = (res && res.code === 0) ? (res.data || []) : []
       this.setData({ units, selectedUnitIds: [] })
     } catch (err) {
       wx.showToast({ title: '单元加载失败', icon: 'none' })
     } finally {
       wx.hideLoading()
+    }
+  },
+
+  // 全选/取消全选单元
+  onToggleAll() {
+    const { units, selectedUnitIds } = this.data
+    if (selectedUnitIds.length === units.length) {
+      this.setData({ selectedUnitIds: [] })
+    } else {
+      this.setData({ selectedUnitIds: units.map(u => u._id) })
     }
   },
 

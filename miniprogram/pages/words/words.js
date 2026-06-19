@@ -25,7 +25,7 @@ Page({
     },
 
     recordState: 'idle', // idle | recording | uploading
-    recordText: '按住录音'
+    recordText: '点击录音'
   },
 
   onLoad(options) {
@@ -41,6 +41,10 @@ Page({
 
   onShow() {
     this.loadWords()
+  },
+
+  onPullDownRefresh() {
+    this.loadWords().then(() => wx.stopPullDownRefresh())
   },
 
   onUnload() {
@@ -81,7 +85,7 @@ Page({
         audioUrl: ''
       },
       recordState: 'idle',
-      recordText: '按住录音'
+      recordText: '点击录音'
     })
   },
 
@@ -101,7 +105,7 @@ Page({
         audioUrl: item.audioUrl || ''
       },
       recordState: 'idle',
-      recordText: '按住录音'
+      recordText: '点击录音'
     })
   },
 
@@ -193,7 +197,17 @@ Page({
         await audio.startRecord()
         this.setData({ recordState: 'recording', recordText: '正在录音，点击结束' })
       } catch (err) {
-        wx.showToast({ title: '录音权限未开启', icon: 'none' })
+        // 权限被拒时引导用户去设置页开启
+        wx.showModal({
+          title: '需要录音权限',
+          content: '录音功能需要授权才能使用，请在设置中开启录音权限。',
+          confirmText: '去设置',
+          success(res) {
+            if (res.confirm) {
+              wx.openSetting()
+            }
+          }
+        })
       }
     } else if (this.data.recordState === 'recording') {
       this.setData({ recordState: 'uploading', recordText: '上传中...' })
@@ -203,13 +217,13 @@ Page({
         this.setData({
           'form.audioUrl': fileID,
           recordState: 'idle',
-          recordText: '按住录音'
+          recordText: '点击录音'
         })
         wx.showToast({ title: '录音已保存', icon: 'success' })
       } catch (err) {
         console.error('录音上传失败:', err)
         wx.showToast({ title: '录音上传失败', icon: 'none' })
-        this.setData({ recordState: 'idle', recordText: '按住录音' })
+        this.setData({ recordState: 'idle', recordText: '点击录音' })
       }
     }
   },

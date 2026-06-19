@@ -43,12 +43,28 @@ exports.main = async (event) => {
     mode = 'en2cn'     // 听写模式：en2cn / cn2en / pinyin2hanzi
   } = event
 
+  const wxContext = cloud.getWXContext()
+  const openid = wxContext.OPENID || ''
+
   try {
+    // 0. 参数与权限校验
+    if (!Array.isArray(unitIds) || unitIds.length === 0) {
+      return { code: 2, message: '请至少选择一个单元' }
+    }
+    if (!['english', 'chinese'].includes(subject)) {
+      return { code: 2, message: '学科类型不正确' }
+    }
+
+    // 校验所选单元是否在当前用户可访问范围内（自己创建的 + 所在班级共享的）
+    const accessibleUnitIds = await getAccessibleUnitIds(openid, subject)
+    const invalidUnitIds = unitIds.filter(id => !accessibleUnitIds.has(id))
+    if (invalidUnitIds.length > 0) {
+      return { code: 5, message: '存在无权访问的单元，请重新选择' }
+    }
+
     // 1. 构建查询条件：按学科 + 单元筛选
     const where = { subject }
-    if (unitIds.length > 0) {
-      where.unitId = _.in(unitIds)
-    }
+    where.unitId = _.in(unitIds)
     if (lessons.length > 0) {
       where.lesson = _.in(lessons)
     }
@@ -94,6 +110,48 @@ exports.main = async (event) => {
       error: err.message
     }
   }
+}
+
+/**
+ * 获取当前用户可访问的单元ID集合（自己创建的 + 所在班级共享的）
+ * @param {string} openid
+ * @param {string} subject
+ * @returns {Promise<Set<string>>}
+ */
+async function getAccessibleUnitIds(openid, subject) {
+  const where = {}
+  if (['english', 'chinese'].includes(subject)) where.subject = subject
+
+  // 自己创建的单元
+  const { data: myUnits } = await db.collection('units')
+    .where({ ...where, createdBy: openid })
+    .field({ _id: true })
+    .get()
+
+  // 所在班级共享的单元
+  const { data: myClasses } = await db.collection('classes')
+    .where(_.or([{ createdBy: openid }, { members: openid }]))
+    .field({ sharedUnitIds: true })
+    .get()
+
+  const sharedIds = new Set()
+  myClasses.forEach(cls => {
+    (cls.sharedUnitIds || []).forEach(id => sharedIds.add(id))
+  })
+
+  let sharedUnits = []
+  if (sharedIds.size > 0) {
+    const res = await db.collection('units')
+      .where({ ...where, _id: _.in(Array.from(sharedIds)) })
+      .field({ _id: true })
+      .get()
+    sharedUnits = res.data
+  }
+
+  const idSet = new Set()
+  myUnits.forEach(u => idSet.add(u._id))
+  sharedUnits.forEach(u => idSet.add(u._id))
+  return idSet
 }
 
 /**

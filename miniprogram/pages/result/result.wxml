@@ -30,7 +30,7 @@
   <!-- 错题列表 -->
   <view class="card" wx:if="{{wrongWords.length > 0}}">
     <view class="section-title">错题本（{{wrongWords.length}}）</view>
-    <view class="wrong-item" wx:for="{{wrongWords}}" wx:key="wordId">
+    <view class="wrong-item" wx:for="{{wrongWords}}" wx:key="index">
       <view class="wrong-q">{{item.word}}</view>
       <view class="wrong-a">
         <text class="wrong-user">你：{{item.userAnswer || '未作答'}}</text>
@@ -48,6 +48,7 @@
   <view class="action-bar">
     <button class="btn-secondary" bindtap="onBackHome">返回首页</button>
     <button class="btn-primary" bindtap="onRetryWrong" wx:if="{{wrongWords.length > 0}}">重测错题</button>
+    <button class="btn-primary" bindtap="onRetryAll" wx:else>再测一组</button>
   </view>
   <button class="btn-secondary btn-share" open-type="share">分享给好友</button>
 </view>

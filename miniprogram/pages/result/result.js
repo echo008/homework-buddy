@@ -9,7 +9,10 @@ Page({
     wrongCount: 0,
     accuracy: 0,
     wrongWords: [],
-    saved: false
+    saved: false,
+    unitIds: [],
+    mode: 'en2cn',
+    subject: 'english'
   },
 
   onLoad() {
@@ -26,7 +29,10 @@ Page({
         correctCount: data.correctCount || 0,
         wrongCount: data.wrongCount || 0,
         accuracy: data.accuracy || 0,
-        wrongWords
+        wrongWords,
+        unitIds: data.unitIds || [],
+        mode: data.mode || 'en2cn',
+        subject: data.subject || 'english'
       })
       this.saveLog({ ...data, wrongWords })
     })
@@ -60,16 +66,16 @@ Page({
       this.setData({ saved: true })
     } catch (err) {
       console.error('保存听写记录失败:', err)
-      wx.showToast({ title: '记录保存失败', icon: 'none' })
     }
   },
 
+  // 重测错题：保留原始 audioUrl
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
       wx.showToast({ title: '没有错题，棒极了！', icon: 'none' })
       return
     }
-    wx.redirectTo({
+    wx.navigateTo({
       url: '/pages/dictation/dictation?mode=retry',
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
@@ -77,20 +83,21 @@ Page({
             index: i + 1,
             wordId: w.wordId,
             unitId: '',
-            audioUrl: '',
+            audioUrl: w.audioUrl || '',
             prompt: w.word,
             promptType: w.promptType || 'english',
             answer: w.correctAnswer,
             answerType: w.answerType || 'chinese'
           })),
           total: this.data.wrongWords.length,
-          unitIds: []
+          unitIds: this.data.unitIds || []
         })
       }
     })
   },
 
-  onRestart() {
+  // 再测一组：同配置重新抽题
+  onRetryAll() {
     wx.reLaunch({ url: '/pages/index/index' })
   },
 

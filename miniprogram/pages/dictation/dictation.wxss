@@ -6,6 +6,29 @@
   flex-direction: column;
 }
 
+/* 顶部导航 */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.nav-back {
+  font-size: 30rpx;
+  color: var(--text-secondary);
+  padding: 10rpx 0;
+}
+
+.nav-skip {
+  font-size: 28rpx;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 10rpx 24rpx;
+  background: var(--primary-light);
+  border-radius: 999rpx;
+}
+
 .progress-bar {
   margin-bottom: 30rpx;
 }
@@ -50,6 +73,15 @@
   justify-content: center;
   gap: 16rpx;
   margin-bottom: 30rpx;
+}
+
+.tts-warning {
+  padding: 16rpx 24rpx;
+  background: var(--warning-light);
+  color: var(--warning);
+  border-radius: var(--radius);
+  font-size: 26rpx;
+  margin-bottom: 24rpx;
 }
 
 .replay-btn {
@@ -118,4 +150,56 @@
 .btn-next {
   margin-top: 32rpx;
   width: 100%;
+}
+
+/* 加载页 */
+.loading-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+}
+
+.loading-text {
+  font-size: 32rpx;
+  color: var(--text-muted);
+}
+
+/* 退出确认弹窗 */
+.exit-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 600rpx;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  z-index: 201;
+  padding: 48rpx 40rpx;
+  text-align: center;
+  box-shadow: 0 24rpx 80rpx rgba(0, 0, 0, 0.15);
+}
+
+.exit-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 16rpx;
+}
+
+.exit-desc {
+  font-size: 28rpx;
+  color: var(--text-muted);
+  margin-bottom: 40rpx;
+}
+
+.exit-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.exit-actions .btn-secondary,
+.exit-actions .btn-primary {
+  flex: 1;
+  margin: 0;
 }
