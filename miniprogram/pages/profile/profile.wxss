@@ -162,3 +162,153 @@
   font-size: 24rpx;
   color: var(--text-muted);
 }
+
+/* 历史详情弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.log-modal {
+  width: 84%;
+  max-height: 76vh;
+  background: #fff;
+  border-radius: 28rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid var(--border);
+}
+
+.log-modal-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.log-modal-close {
+  font-size: 32rpx;
+  color: var(--text-muted);
+  padding: 8rpx 16rpx;
+}
+
+.log-modal-body {
+  padding: 32rpx;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.log-modal-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.log-modal-subject {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.log-modal-time {
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+.log-modal-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 24rpx 0;
+  background: var(--bg-soft);
+  border-radius: 20rpx;
+  margin-bottom: 28rpx;
+}
+
+.log-modal-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.log-modal-num {
+  font-size: 38rpx;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 6rpx;
+}
+
+.log-modal-label {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.log-modal-section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.log-wrong-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.log-wrong-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 18rpx 20rpx;
+  background: var(--bg-soft);
+  border-radius: 16rpx;
+}
+
+.log-wrong-word {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.log-wrong-meaning {
+  font-size: 26rpx;
+  color: var(--text-muted);
+}
+
+.log-modal-empty {
+  text-align: center;
+  padding: 40rpx 0;
+  color: var(--text-muted);
+  font-size: 28rpx;
+}
+
+.log-modal-footer {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 32rpx 40rpx;
+  border-top: 1rpx solid var(--border);
+}
+
+.btn-half {
+  flex: 1;
+  margin: 0;
+}
+
+.btn-half::after {
+  border: none;
+}

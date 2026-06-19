@@ -67,6 +67,7 @@ Page({
         wrongCount: data.wrongCount || 0,
         accuracy: data.accuracy || 0,
         wrongWords: data.wrongWords || [],
+        questions: data.questions || [],
         status: 'completed'
       })
       if (res.code !== 0) {
@@ -116,9 +117,10 @@ Page({
     })
   },
 
-  // 再测一组：同配置重新抽题
+  // 再测一组：同配置重新抽题，携带学科和模式减少重复选择
   onRetryAll() {
-    wx.reLaunch({ url: '/pages/index/index' })
+    const { subject, mode } = this.data
+    wx.reLaunch({ url: `/pages/index/index?subject=${subject}&mode=${mode}` })
   },
 
   onBackHome() {

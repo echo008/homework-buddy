@@ -78,10 +78,21 @@ Page({
     this.setData({ loading: true, status: '正在上传图片...', resultWords: [] })
 
     try {
+      // 优先压缩图片，提升上传速度并降低流量消耗
+      let filePath = tempFilePath
+      if (wx.canIUse('compressImage')) {
+        try {
+          const compressRes = await wx.compressImage({ src: tempFilePath, quality: 80 })
+          filePath = compressRes.tempFilePath
+        } catch (err) {
+          console.error('图片压缩失败:', err)
+        }
+      }
+
       const cloudPath = `ocr/${Date.now()}-${Math.floor(Math.random() * 10000)}.jpg`
       const uploadRes = await wx.cloud.uploadFile({
         cloudPath,
-        filePath: tempFilePath
+        filePath
       })
 
       this.setData({ status: '正在识别文字，请稍候...' })
@@ -118,6 +129,7 @@ Page({
   },
 
   onGoHome() {
-    wx.reLaunch({ url: '/pages/index/index' })
+    const { subject } = this.data
+    wx.reLaunch({ url: `/pages/index/index?subject=${subject}` })
   }
 })

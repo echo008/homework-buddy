@@ -51,11 +51,14 @@ Page({
   },
 
   onLoad(options) {
-    // 支持外部跳转携带学科（如班级详情页"去听写"）
+    this._unitReqSeq = 0
+    // 支持外部跳转携带学科与模式（如班级详情页"去听写"、结果页"再测一组"）
     const subject = options && options.subject
     if (subject && ['english', 'chinese'].includes(subject)) {
       const modes = this.data.modeOptions[subject]
-      this.setData({ subject, mode: modes[0].value })
+      const validModes = modes.map(m => m.value)
+      const mode = options.mode && validModes.includes(options.mode) ? options.mode : modes[0].value
+      this.setData({ subject, mode })
     }
     // 首次加载由 onShow 统一触发，避免重复请求
   },
@@ -79,11 +82,13 @@ Page({
 
   // 加载单元列表（走云函数，按当前用户 createdBy 过滤）
   async loadUnits(subject) {
+    const seq = ++this._unitReqSeq
     // 首次加载（units 为空）才显示 loading，避免从其他页返回时频繁闪烁
     const isFirstLoad = this.data.units.length === 0 && !this._loadedOnce
     if (isFirstLoad) wx.showLoading({ title: '加载中...' })
     try {
       const res = await getManagedUnits(subject)
+      if (seq !== this._unitReqSeq) return
       const units = (res && res.code === 0) ? (res.data || []) : []
       // 刷新后保留仍然存在的选中单元，避免用户从其他页面返回后需重新选择
       const validIds = new Set(units.map(u => u._id))
@@ -95,9 +100,10 @@ Page({
       })
       this._loadedOnce = true
     } catch (err) {
+      if (seq !== this._unitReqSeq) return
       wx.showToast({ title: '单元加载失败', icon: 'none' })
     } finally {
-      if (isFirstLoad) wx.hideLoading()
+      if (isFirstLoad && seq === this._unitReqSeq) wx.hideLoading()
     }
   },
 
@@ -294,6 +300,7 @@ Page({
   },
 
   async onAddSubmit() {
+    if (this.data.adding) return
     const { addForm, selectedUnitIds, subject } = this.data
     const unitId = selectedUnitIds[0]
 

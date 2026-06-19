@@ -4,6 +4,11 @@ App({
     // 初始化云开发环境
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力')
+      wx.showModal({
+        title: '微信版本过低',
+        content: '请升级微信到最新版本后使用本小程序。',
+        showCancel: false
+      })
       return
     }
     // ⚠️ 重要：请将下方 env 替换为你的真实云开发环境 ID

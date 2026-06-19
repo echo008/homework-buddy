@@ -45,7 +45,7 @@
   <view class="section-title">最近听写</view>
 
   <view wx:if="{{logs.length > 0}}">
-    <view class="card log-item" wx:for="{{logs}}" wx:key="_id">
+    <view class="card log-item" wx:for="{{logs}}" wx:key="_id" data-log="{{item}}" bindtap="onLogTap">
       <view class="log-top">
         <view class="log-subject-wrap">
           <text class="tag {{item.subject === 'english' ? 'tag-primary' : 'tag-accent'}}">{{item.subject === 'english' ? '英语' : '语文'}}</text>
@@ -63,5 +63,60 @@
   <view class="card empty" wx:elif="{{!loading}}">
     <text>暂无听写记录</text>
     <text class="empty-tip">去首页开始第一次听写吧</text>
+  </view>
+
+  <!-- 历史记录详情弹窗 -->
+  <view class="modal-mask" wx:if="{{showLogDetail}}" bindtap="onCloseLogDetail">
+    <view class="log-modal" catchtap="noop">
+      <view class="log-modal-header">
+        <text class="log-modal-title">听写详情</text>
+        <text class="log-modal-close" bindtap="onCloseLogDetail">✕</text>
+      </view>
+
+      <view class="log-modal-body" wx:if="{{currentLog}}">
+        <view class="log-modal-info">
+          <text class="log-modal-subject">{{currentLog.subject === 'english' ? '英语' : '语文'}} · {{currentLog.mode === 'en2cn' ? '英→中' : currentLog.mode === 'cn2en' ? '中→英' : '拼音→汉字'}}</text>
+          <text class="log-modal-time">{{currentLog.createdAtText}}</text>
+        </view>
+
+        <view class="log-modal-stats">
+          <view class="log-modal-stat">
+            <text class="log-modal-num">{{currentLog.totalWords}}</text>
+            <text class="log-modal-label">总题数</text>
+          </view>
+          <view class="log-modal-stat">
+            <text class="log-modal-num">{{currentLog.correctCount}}</text>
+            <text class="log-modal-label">正确</text>
+          </view>
+          <view class="log-modal-stat">
+            <text class="log-modal-num">{{currentLog.wrongCount}}</text>
+            <text class="log-modal-label">错误</text>
+          </view>
+          <view class="log-modal-stat">
+            <text class="log-modal-num">{{currentLog.accuracy}}%</text>
+            <text class="log-modal-label">正确率</text>
+          </view>
+        </view>
+
+        <view class="log-modal-section" wx:if="{{(currentLog.wrongWords || []).length > 0}}">
+          <text class="log-modal-section-title">错题列表</text>
+          <view class="log-wrong-list">
+            <view class="log-wrong-item" wx:for="{{currentLog.wrongWords}}" wx:key="index">
+              <text class="log-wrong-word">{{item.word}}</text>
+              <text class="log-wrong-meaning" wx:if="{{item.meaning}}">{{item.meaning}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="log-modal-empty" wx:else>
+          <text>🎉 本次全对，没有错题</text>
+        </view>
+      </view>
+
+      <view class="log-modal-footer">
+        <button class="btn-secondary btn-half" bindtap="onRetryWrongLog" disabled="{{!(currentLog.wrongWords || []).length}}">重测错题</button>
+        <button class="btn-primary btn-half" bindtap="onRetryLog" disabled="{{!(currentLog.questions || []).length}}">重测全部</button>
+      </view>
+    </view>
   </view>
 </view>

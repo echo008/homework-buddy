@@ -50,6 +50,8 @@ Page({
 
   onLoad(options) {
     // 由 onShow 统一加载班级列表，避免 onLoad + onShow 重复请求
+    this._classReqSeq = 0
+    this._detailReqSeq = 0
 
     // 处理分享卡片进入：携带 joinCode 时自动填充
     const joinCode = options && options.joinCode ? options.joinCode.trim() : ''
@@ -86,28 +88,36 @@ Page({
   },
 
   onPullDownRefresh() {
+    let promise
     if (this.data.view === 'list') {
-      this.loadClasses().then(() => wx.stopPullDownRefresh())
+      promise = this.loadClasses()
     } else if (this.data.currentClass) {
-      this.loadClassDetail(this.data.currentClass._id).then(() => wx.stopPullDownRefresh())
+      promise = this.loadClassDetail(this.data.currentClass._id)
     } else {
       wx.stopPullDownRefresh()
+      return
     }
+    promise.then(() => wx.stopPullDownRefresh()).catch(() => wx.stopPullDownRefresh())
   },
 
   async loadClasses() {
+    const seq = ++this._classReqSeq
     this.setData({ loading: true })
     try {
       const res = await getMyClasses()
+      if (seq !== this._classReqSeq) return
       if (res.code === 0) {
         this.setData({ classes: res.data || [] })
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }
     } catch (err) {
+      if (seq !== this._classReqSeq) return
       wx.showToast({ title: '班级加载失败', icon: 'none' })
     } finally {
-      this.setData({ loading: false })
+      if (seq === this._classReqSeq) {
+        this.setData({ loading: false })
+      }
     }
   },
 
@@ -133,6 +143,7 @@ Page({
   },
 
   async submitCreate() {
+    if (this.data.creating) return
     const { createForm } = this.data
     if (!createForm.name.trim()) {
       wx.showToast({ title: '班级名称不能为空', icon: 'none' })
@@ -165,6 +176,7 @@ Page({
   },
 
   async submitJoin() {
+    if (this.data.joining) return
     const { joinCode } = this.data
     if (!joinCode.trim()) {
       wx.showToast({ title: '请输入班级码', icon: 'none' })
@@ -195,7 +207,7 @@ Page({
   enterClass(e) {
     // 仅传 _id，避免 dataset 序列化大对象（members 数组等）丢失数据
     const classId = e.currentTarget.dataset.id
-    if (!classId) return
+    if (!classId || this.data.detailLoading) return
     this.setData({ view: 'detail' })
     this.loadClassDetail(classId)
   },
@@ -206,9 +218,11 @@ Page({
   },
 
   async loadClassDetail(classId) {
+    const seq = ++this._detailReqSeq
     this.setData({ detailLoading: true })
     try {
       const res = await getClassDetail(classId)
+      if (seq !== this._detailReqSeq) return
       if (res.code === 0) {
         this.setData({
           currentClass: res.data,
@@ -221,9 +235,12 @@ Page({
         setTimeout(() => this.backToList(), 1500)
       }
     } catch (err) {
+      if (seq !== this._detailReqSeq) return
       wx.showToast({ title: '加载失败', icon: 'none' })
     } finally {
-      this.setData({ detailLoading: false })
+      if (seq === this._detailReqSeq) {
+        this.setData({ detailLoading: false })
+      }
     }
   },
 
@@ -360,6 +377,9 @@ Page({
         // 仅显示当前用户自己创建的单元（共享单元无法再次共享，避免误选报错）
         const myOwnUnits = (res.data || []).filter(u => u.createdBy === openid)
         this.setData({ myUnits: myOwnUnits })
+        if (myOwnUnits.length === 0) {
+          wx.showToast({ title: '暂无可共享单元，请先创建', icon: 'none', duration: 2000 })
+        }
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }
@@ -380,6 +400,7 @@ Page({
   },
 
   async submitShare() {
+    if (this.data.sharing) return
     const { currentClass, selectedShareUnitId } = this.data
     if (!selectedShareUnitId) {
       wx.showToast({ title: '请选择一个单元', icon: 'none' })

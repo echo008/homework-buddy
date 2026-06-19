@@ -28,6 +28,9 @@ Page({
   isHidden: false, // 页面是否在后台
 
   onLoad(options) {
+    // 播放令牌，防止 async 获取临时链接期间被新播放请求覆盖
+    this._playToken = 0
+
     const { mode, interval, subject, min, max } = options
     this.setData({
       mode: mode || 'en2cn',
@@ -157,7 +160,7 @@ Page({
   },
 
   // 播报当前题：优先使用自定义录音，否则用 TTS；拼音模式仅显示文字
-  playCurrent() {
+  async playCurrent() {
     const { questions, currentIndex } = this.data
     const current = questions[currentIndex]
     if (!current) return
@@ -166,20 +169,35 @@ Page({
     this.destroyCurrentAudio()
     this.setData({ ttsUnavailable: false })
 
+    // 生成本次播放令牌，获取临时链接期间若被新请求覆盖则丢弃本次结果
+    const token = ++this._playToken
+
     if (current.audioUrl) {
       this.setData({ isPlaying: true })
-      this.currentAudio = playCustomAudio(current.audioUrl, {
-        onEnd: () => {
-          this.setData({ isPlaying: false })
-          this.currentAudio = null
-        },
-        onError: () => {
-          this.setData({ isPlaying: false })
-          this.currentAudio = null
-          // 录音播放失败时降级到 TTS
-          this.playTTS(current)
+      try {
+        const audioCtx = await playCustomAudio(current.audioUrl, {
+          onEnd: () => {
+            this.setData({ isPlaying: false })
+            this.currentAudio = null
+          },
+          onError: () => {
+            this.setData({ isPlaying: false })
+            this.currentAudio = null
+            // 录音播放失败时降级到 TTS
+            this.playTTS(current)
+          }
+        })
+        if (token !== this._playToken) {
+          audioCtx.destroy()
+          return
         }
-      })
+        this.currentAudio = audioCtx
+      } catch (err) {
+        if (token !== this._playToken) return
+        console.error('播放自定义音频失败:', err)
+        this.setData({ isPlaying: false })
+        this.playTTS(current)
+      }
     } else if (current.promptType === 'pinyin') {
       // 拼音模式：TTS 无法准确读出带声调拼音，仅显示文字，不播报
       this.setData({ isPlaying: false })
@@ -280,7 +298,7 @@ Page({
     this.destroyCurrentAudio()
     this.clearCountdown()
 
-    const { answers, unitIds, mode, subject, interval, wordCountRange } = this.data
+    const { answers, questions, unitIds, mode, subject, interval, wordCountRange } = this.data
     const correctCount = answers.filter(a => a.isCorrect).length
     const total = answers.length
     const wrongCount = total - correctCount
@@ -291,7 +309,7 @@ Page({
       url: '/pages/result/result',
       success: (nav) => {
         nav.eventChannel.emit('resultData', {
-          answers, unitIds, mode, subject, interval, wordCountRange,
+          answers, questions, unitIds, mode, subject, interval, wordCountRange,
           total, correctCount, wrongCount, accuracy, wrongWords
         })
       },
@@ -305,9 +323,22 @@ Page({
   }
 })
 
-function playCustomAudio(url, callbacks = {}) {
+async function playCustomAudio(url, callbacks = {}) {
+  let src = url
+  // 云存储 fileID 转换为临时链接，兼容更多基础库版本
+  if (url && url.startsWith('cloud://')) {
+    try {
+      const { fileList } = await wx.cloud.getTempFileURL({ fileList: [url] })
+      if (fileList && fileList[0] && fileList[0].tempFileURL) {
+        src = fileList[0].tempFileURL
+      }
+    } catch (err) {
+      console.error('获取音频临时链接失败:', err)
+    }
+  }
+
   const innerAudioContext = wx.createInnerAudioContext()
-  innerAudioContext.src = url
+  innerAudioContext.src = src
   innerAudioContext.onPlay(() => {
     if (typeof callbacks.onStart === 'function') callbacks.onStart()
   })

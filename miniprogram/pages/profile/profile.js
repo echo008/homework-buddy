@@ -25,7 +25,9 @@ Page({
       totalWords: 0,
       avgAccuracy: 0
     },
-    loading: true
+    loading: true,
+    showLogDetail: false,
+    currentLog: null
   },
 
   onShow() {
@@ -76,5 +78,66 @@ Page({
       title: 'Homework Buddy · 智听 - 让听写变简单',
       path: '/pages/index/index'
     }
+  },
+
+  // 打开历史记录详情
+  onLogTap(e) {
+    const log = e.currentTarget.dataset.log
+    if (!log) return
+    this.setData({ showLogDetail: true, currentLog: log })
+  },
+
+  // 关闭详情弹窗
+  onCloseLogDetail() {
+    this.setData({ showLogDetail: false, currentLog: null })
+  },
+
+  // 阻止冒泡的空方法
+  noop() {},
+
+  // 重测本次听写的全部题目
+  onRetryLog() {
+    const { currentLog } = this.data
+    if (!currentLog) return
+    const questions = currentLog.questions || []
+    if (questions.length === 0) {
+      wx.showToast({ title: '该记录没有保存题目', icon: 'none' })
+      return
+    }
+    this.setData({ showLogDetail: false })
+    wx.navigateTo({
+      url: `/pages/dictation/dictation?mode=${currentLog.mode}&subject=${currentLog.subject}&interval=5`,
+      success: (res) => {
+        res.eventChannel.emit('dictationData', {
+          questions,
+          total: questions.length,
+          unitIds: [],
+          source: 'log'
+        })
+      }
+    })
+  },
+
+  // 重测本次错题
+  onRetryWrongLog() {
+    const { currentLog } = this.data
+    if (!currentLog) return
+    const wrongWords = currentLog.wrongWords || []
+    if (wrongWords.length === 0) {
+      wx.showToast({ title: '本次没有错题', icon: 'none' })
+      return
+    }
+    this.setData({ showLogDetail: false })
+    wx.navigateTo({
+      url: `/pages/dictation/dictation?mode=${currentLog.mode}&subject=${currentLog.subject}&interval=5`,
+      success: (res) => {
+        res.eventChannel.emit('dictationData', {
+          questions: wrongWords,
+          total: wrongWords.length,
+          unitIds: [],
+          source: 'log'
+        })
+      }
+    })
   }
 })

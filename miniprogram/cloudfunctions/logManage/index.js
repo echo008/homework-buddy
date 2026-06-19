@@ -48,6 +48,7 @@ async function saveLog(log = {}, openid) {
     wrongCount = 0,
     accuracy = 0,
     wrongWords = [],
+    questions = [],
     status = 'completed'
   } = log
 
@@ -73,6 +74,7 @@ async function saveLog(log = {}, openid) {
     wrongCount: Number(wrongCount) || 0,
     accuracy: Number(accuracy) || 0,
     wrongWords: Array.isArray(wrongWords) ? wrongWords : [],
+    questions: Array.isArray(questions) ? questions : [],
     status,
     createdAt: now,
     updatedAt: now

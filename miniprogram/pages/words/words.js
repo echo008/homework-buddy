@@ -45,7 +45,9 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadWords().then(() => wx.stopPullDownRefresh())
+    this.loadWords()
+      .then(() => wx.stopPullDownRefresh())
+      .catch(() => wx.stopPullDownRefresh())
   },
 
   onUnload() {
@@ -137,6 +139,7 @@ Page({
   },
 
   async onSubmit() {
+    if (this.data.submitting) return
     const { form, unitId, subject, editing } = this.data
     if (!form.word.trim() || !form.meaning.trim()) {
       wx.showToast({ title: '单词和释义不能为空', icon: 'none' })

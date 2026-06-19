@@ -26,6 +26,7 @@ Page({
 
   onLoad() {
     // 由 onShow 统一加载，避免 onLoad + onShow 重复请求
+    this._unitReqSeq = 0
   },
 
   onShow() {
@@ -33,7 +34,9 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadUnits().then(() => wx.stopPullDownRefresh())
+    this.loadUnits()
+      .then(() => wx.stopPullDownRefresh())
+      .catch(() => wx.stopPullDownRefresh())
   },
 
   onSubjectChange(e) {
@@ -43,18 +46,23 @@ Page({
   },
 
   async loadUnits() {
+    const seq = ++this._unitReqSeq
     this.setData({ loading: true })
     try {
       const res = await getManagedUnits(this.data.subject)
+      if (seq !== this._unitReqSeq) return
       if (res.code === 0) {
         this.setData({ units: res.data || [] })
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }
     } catch (err) {
+      if (seq !== this._unitReqSeq) return
       wx.showToast({ title: '单元加载失败', icon: 'none' })
     } finally {
-      this.setData({ loading: false })
+      if (seq === this._unitReqSeq) {
+        this.setData({ loading: false })
+      }
     }
   },
 
@@ -115,6 +123,7 @@ Page({
   },
 
   async onSubmit() {
+    if (this.data.submitting) return
     const { form, subject, editing } = this.data
     if (!form.name || !form.name.trim()) {
       wx.showToast({ title: '单元名称不能为空', icon: 'none' })
