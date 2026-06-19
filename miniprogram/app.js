@@ -1,4 +1,4 @@
-// app.js - 智听 Smart Dictation Helper 小程序入口
+// app.js - 智听 · Homework Buddy 小程序入口
 App({
   onLaunch() {
     // 初始化云开发环境

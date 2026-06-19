@@ -2,7 +2,7 @@
 <view class="container">
   <view class="card profile-header">
     <view class="avatar">📚</view>
-    <view class="profile-name">智听学员</view>
+    <view class="profile-name">Homework Buddy 学员</view>
   </view>
 
   <view class="section-title">最近听写</view>
