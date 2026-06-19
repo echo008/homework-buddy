@@ -1,0 +1,150 @@
+{
+  "presetTextbooks": [
+    {
+      "name": "人教版小学语文三年级上册",
+      "publisher": "人民教育出版社",
+      "subject": "chinese",
+      "gradeLevel": "primary",
+      "grade": 3,
+      "semester": 1,
+      "version": "pep",
+      "order": 1
+    },
+    {
+      "name": "人教版小学英语三年级上册",
+      "publisher": "人民教育出版社",
+      "subject": "english",
+      "gradeLevel": "primary",
+      "grade": 3,
+      "semester": 1,
+      "version": "pep",
+      "order": 2
+    }
+  ],
+  "presetUnits": [
+    {
+      "name": "古诗词背诵",
+      "subject": "chinese",
+      "gradeLevel": "primary",
+      "grade": 3,
+      "semester": 1,
+      "contentType": "poetry",
+      "order": 1,
+      "textbookIndex": 0
+    },
+    {
+      "name": "Unit 1 Hello",
+      "subject": "english",
+      "gradeLevel": "primary",
+      "grade": 3,
+      "semester": 1,
+      "contentType": "word",
+      "order": 1,
+      "textbookIndex": 1
+    }
+  ],
+  "presetWords": [
+    {
+      "unitIndex": 0,
+      "word": "静夜思",
+      "meaning": "李白",
+      "pinyin": "jìng yè sī",
+      "lesson": 1,
+      "order": 1
+    },
+    {
+      "unitIndex": 0,
+      "word": "望庐山瀑布",
+      "meaning": "李白",
+      "pinyin": "wàng lú shān pù bù",
+      "lesson": 1,
+      "order": 2
+    },
+    {
+      "unitIndex": 0,
+      "word": "绝句",
+      "meaning": "杜甫",
+      "pinyin": "jué jù",
+      "lesson": 1,
+      "order": 3
+    },
+    {
+      "unitIndex": 0,
+      "word": "山行",
+      "meaning": "杜牧",
+      "pinyin": "shān xíng",
+      "lesson": 1,
+      "order": 4
+    },
+    {
+      "unitIndex": 0,
+      "word": "赠刘景文",
+      "meaning": "苏轼",
+      "pinyin": "zèng liú jǐng wén",
+      "lesson": 2,
+      "order": 5
+    },
+    {
+      "unitIndex": 0,
+      "word": "夜书所见",
+      "meaning": "叶绍翁",
+      "pinyin": "yè shū suǒ jiàn",
+      "lesson": 2,
+      "order": 6
+    },
+    {
+      "unitIndex": 1,
+      "word": "hello",
+      "meaning": "你好",
+      "phonetic": "/həˈləʊ/",
+      "partOfSpeech": "int.",
+      "lesson": 1,
+      "order": 1
+    },
+    {
+      "unitIndex": 1,
+      "word": "hi",
+      "meaning": "嗨，你好",
+      "phonetic": "/haɪ/",
+      "partOfSpeech": "int.",
+      "lesson": 1,
+      "order": 2
+    },
+    {
+      "unitIndex": 1,
+      "word": "name",
+      "meaning": "名字",
+      "phonetic": "/neɪm/",
+      "partOfSpeech": "n.",
+      "lesson": 1,
+      "order": 3
+    },
+    {
+      "unitIndex": 1,
+      "word": "I",
+      "meaning": "我",
+      "phonetic": "/aɪ/",
+      "partOfSpeech": "pron.",
+      "lesson": 1,
+      "order": 4
+    },
+    {
+      "unitIndex": 1,
+      "word": "am",
+      "meaning": "是",
+      "phonetic": "/æm/",
+      "partOfSpeech": "v.",
+      "lesson": 1,
+      "order": 5
+    },
+    {
+      "unitIndex": 1,
+      "word": "goodbye",
+      "meaning": "再见",
+      "phonetic": "/ˌɡʊdˈbaɪ/",
+      "partOfSpeech": "int.",
+      "lesson": 1,
+      "order": 6
+    }
+  ]
+}

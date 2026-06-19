@@ -1,0 +1,269 @@
+/* pages/preset/preset.wxss - 智能选题页面样式 */
+
+.container {
+  padding: 32rpx;
+  padding-bottom: 180rpx;
+}
+
+/* 顶部标题 */
+.preset-header {
+  margin-bottom: 32rpx;
+}
+
+.preset-title {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+}
+
+.preset-subtitle {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-tertiary);
+}
+
+/* 筛选区块 */
+.filter-section {
+  margin-bottom: 28rpx;
+}
+
+.filter-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16rpx;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.filter-chip {
+  min-width: 112rpx;
+  padding: 14rpx 28rpx;
+  background: #fff;
+  border: 2rpx solid var(--border);
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.filter-chip.chip-active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* 教材/单元卡片 */
+.section-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-top: 24rpx;
+  box-shadow: var(--shadow);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.section-action {
+  font-size: 26rpx;
+  color: var(--primary);
+}
+
+.textbook-list {
+  max-height: 320rpx;
+}
+
+.textbook-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--border-light);
+}
+
+.textbook-item:last-child {
+  border-bottom: none;
+}
+
+.textbook-item.item-active {
+  background: var(--primary-light);
+  margin: 0 -28rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 16rpx;
+}
+
+.textbook-name {
+  display: block;
+  font-size: 28rpx;
+  color: var(--text-primary);
+  margin-bottom: 4rpx;
+}
+
+.textbook-info {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+}
+
+/* 单元网格 */
+.unit-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.unit-chip {
+  width: calc(33.333% - 11rpx);
+  background: #fff;
+  border: 2rpx solid var(--border);
+  border-radius: 20rpx;
+  padding: 18rpx 12rpx;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.unit-chip.chip-active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.chip-name {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-primary);
+  margin-bottom: 6rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-count {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-tertiary);
+}
+
+/* 已选汇总 */
+.summary-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 160rpx;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 26rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 16rpx 0;
+  z-index: 10;
+}
+
+/* 底部操作 */
+.action-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  z-index: 20;
+}
+
+.action-area .btn-secondary,
+.action-area .btn-primary {
+  flex: 1;
+  margin: 0;
+}
+
+/* 自定义输入入口 */
+.custom-input-bar {
+  text-align: center;
+  margin-top: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.custom-text {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+  margin-right: 8rpx;
+}
+
+.custom-link {
+  font-size: 24rpx;
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* 加载与空状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.loading-spinner {
+  width: 64rpx;
+  height: 64rpx;
+  border: 6rpx solid var(--primary-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: var(--text-tertiary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.empty-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+}
+
+.empty-desc {
+  display: block;
+  font-size: 26rpx;
+  color: var(--text-tertiary);
+}

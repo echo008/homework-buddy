@@ -135,12 +135,12 @@
 /* 快捷入口 */
 .quick-grid {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 20rpx;
 }
 
 .quick-item {
-  flex: 1;
+  width: calc(33.333% - 14rpx);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -167,8 +167,10 @@
 
 .quick-primary { background: var(--primary-light); }
 .quick-accent { background: var(--accent-light); }
+.quick-success { background: #dcfce7; }
 .quick-warning { background: var(--warning-light); }
 .quick-soft { background: #f3e8ff; }
+.quick-muted { background: #f3f4f6; }
 
 .quick-label {
   font-size: 24rpx;

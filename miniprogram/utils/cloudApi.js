@@ -79,6 +79,28 @@ function deleteWord(wordId) {
   return callCloud('wordManage', { action: 'delete', wordId })
 }
 
+// ========== 预置内容 ==========
+
+function listPresetFilters() {
+  return callCloud('presetManage', { action: 'listFilters' })
+}
+
+function listPresetTextbooks({ gradeLevel, subject, version }) {
+  return callCloud('presetManage', { action: 'listTextbooks', gradeLevel, subject, version })
+}
+
+function listPresetUnits({ textbookId, subject, contentType }) {
+  return callCloud('presetManage', { action: 'listPresetUnits', textbookId, subject, contentType })
+}
+
+function previewPresetWords(unitId, limit = 20) {
+  return callCloud('presetManage', { action: 'previewPresetWords', unitId, limit })
+}
+
+function importPresetUnits(presetUnitIds) {
+  return callCloud('presetManage', { action: 'importPresetUnits', presetUnitIds })
+}
+
 // ========== 听写记录 ==========
 
 function saveUserLog(log) {
@@ -142,5 +164,10 @@ module.exports = {
   leaveClass,
   dismissClass,
   saveUserLog,
-  getUserLogs
+  getUserLogs,
+  listPresetFilters,
+  listPresetTextbooks,
+  listPresetUnits,
+  previewPresetWords,
+  importPresetUnits
 }

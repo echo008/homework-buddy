@@ -100,20 +100,28 @@
   <view class="card">
     <view class="section-title">快捷入口</view>
     <view class="quick-grid">
-      <view class="quick-item" bindtap="goUnits">
-        <view class="quick-icon quick-primary">📚</view>
-        <text class="quick-label">单元/词库</text>
+      <view class="quick-item" bindtap="goPreset">
+        <view class="quick-icon quick-primary">🎯</view>
+        <text class="quick-label">智能选题</text>
       </view>
       <view class="quick-item" bindtap="onScan">
         <view class="quick-icon quick-accent">📷</view>
         <text class="quick-label">拍照导入</text>
       </view>
+      <view class="quick-item" bindtap="onShowAddModal">
+        <view class="quick-icon quick-success">✏️</view>
+        <text class="quick-label">手动加词</text>
+      </view>
+      <view class="quick-item" bindtap="goUnits">
+        <view class="quick-icon quick-warning">📚</view>
+        <text class="quick-label">单元/词库</text>
+      </view>
       <view class="quick-item" bindtap="goClass">
-        <view class="quick-icon quick-warning">🏫</view>
+        <view class="quick-icon quick-soft">🏫</view>
         <text class="quick-label">班级共享</text>
       </view>
       <view class="quick-item" bindtap="goProfile">
-        <view class="quick-icon quick-soft">👤</view>
+        <view class="quick-icon quick-muted">👤</view>
         <text class="quick-label">我的记录</text>
       </view>
     </view>

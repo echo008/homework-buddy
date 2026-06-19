@@ -234,6 +234,11 @@ Page({
     wx.navigateTo({ url: '/pages/profile/profile' })
   },
 
+  // 跳转智能选题页
+  goPreset() {
+    wx.navigateTo({ url: '/pages/preset/preset' })
+  },
+
   // ========== 手动加词 ==========
   onShowAddModal() {
     const { selectedUnitIds, subject } = this.data

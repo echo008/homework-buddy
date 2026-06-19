@@ -1,0 +1,9 @@
+{
+  "name": "presetManage",
+  "version": "1.0.0",
+  "description": "预置听写内容管理：学段/教材/单元筛选、导入、预览",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~3.0.1"
+  }
+}

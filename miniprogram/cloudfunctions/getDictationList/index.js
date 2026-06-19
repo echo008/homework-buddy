@@ -36,7 +36,8 @@ function randomCount(min, max) {
 
 exports.main = async (event) => {
   const {
-    unitIds = [],      // 所选单元ID列表
+    unitIds = [],      // 用户自己的单元ID列表
+    presetUnitIds = [], // 预置单元ID列表（公开内容，无需权限校验）
     lessons = [],      // 所选课次列表（可选，空表示不限课次）
     subject = 'english', // 学科：english / chinese
     wordCountRange = { min: 10, max: 15 }, // 抽题数量上下限
@@ -48,29 +49,44 @@ exports.main = async (event) => {
 
   try {
     // 0. 参数与权限校验
-    if (!Array.isArray(unitIds) || unitIds.length === 0) {
+    const hasUserUnits = Array.isArray(unitIds) && unitIds.length > 0
+    const hasPresetUnits = Array.isArray(presetUnitIds) && presetUnitIds.length > 0
+    if (!hasUserUnits && !hasPresetUnits) {
       return { code: 2, message: '请至少选择一个单元' }
     }
     if (!['english', 'chinese'].includes(subject)) {
       return { code: 2, message: '学科类型不正确' }
     }
 
-    // 校验所选单元是否在当前用户可访问范围内（自己创建的 + 所在班级共享的）
-    const accessibleUnitIds = await getAccessibleUnitIds(openid, subject)
-    const invalidUnitIds = unitIds.filter(id => !accessibleUnitIds.has(id))
-    if (invalidUnitIds.length > 0) {
-      return { code: 5, message: '存在无权访问的单元，请重新选择' }
+    // 校验用户单元是否在当前用户可访问范围内（自己创建的 + 所在班级共享的）
+    if (hasUserUnits) {
+      const accessibleUnitIds = await getAccessibleUnitIds(openid, subject)
+      const invalidUnitIds = unitIds.filter(id => !accessibleUnitIds.has(id))
+      if (invalidUnitIds.length > 0) {
+        return { code: 5, message: '存在无权访问的单元，请重新选择' }
+      }
     }
 
     // 1. 构建查询条件：按学科 + 单元筛选
-    const where = { subject }
-    where.unitId = _.in(unitIds)
-    if (lessons.length > 0) {
-      where.lesson = _.in(lessons)
+    const wordList = []
+
+    if (hasUserUnits) {
+      const where = { subject, unitId: _.in(unitIds) }
+      if (Array.isArray(lessons) && lessons.length > 0) {
+        where.lesson = _.in(lessons)
+      }
+      const userWords = await paginateQuery(db.collection('words').where(where))
+      wordList.push(...userWords)
     }
 
-    // 2. 查询题库（分页，避免单次 100 条限制）
-    const wordList = await paginateQuery(db.collection('words').where(where))
+    if (hasPresetUnits) {
+      const presetWhere = { subject, unitId: _.in(presetUnitIds) }
+      if (Array.isArray(lessons) && lessons.length > 0) {
+        presetWhere.lesson = _.in(lessons)
+      }
+      const presetWords = await paginateQuery(db.collection('presetWords').where(presetWhere))
+      wordList.push(...presetWords)
+    }
 
     if (wordList.length === 0) {
       return {

@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/preset/preset",
     "pages/scan/scan",
     "pages/dictation/dictation",
     "pages/result/result",
