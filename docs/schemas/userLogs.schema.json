@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://smart-dictation.helper/schemas/userLogs.schema.json",
   "title": "UserLogs Collection (听写记录表)",
-  "description": "智听 Smart Dictation Helper - 听写会话记录集合。存储每次听写的配置、作答结果、错题明细与统计，支撑错题本与重测功能。对应云数据库 Collection: userLogs",
+  "description": "Homework Buddy · 智听 - 听写会话记录集合。存储每次听写的配置、作答结果、错题明细与统计，支撑错题本与重测功能。对应云数据库 Collection: userLogs",
   "type": "object",
   "required": ["_id", "openid", "subject", "mode", "totalWords", "correctCount", "wrongCount", "accuracy", "status", "createdAt"],
   "properties": {

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://smart-dictation.helper/schemas/units.schema.json",
   "title": "Units Collection (单元表)",
-  "description": "智听 Smart Dictation Helper - 单元/教材数据集合。存储教材版本、年级、册次、单元等组织信息，作为单词的分组容器。对应云数据库 Collection: units",
+  "description": "Homework Buddy · 智听 - 单元/教材数据集合。存储教材版本、年级、册次、单元等组织信息，作为单词的分组容器。对应云数据库 Collection: units",
   "type": "object",
   "required": ["_id", "name", "subject", "grade", "semester", "textbook", "createdAt", "updatedAt"],
   "properties": {

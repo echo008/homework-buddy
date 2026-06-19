@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://smart-dictation.helper/schemas/words.schema.json",
   "title": "Words Collection (单词表)",
-  "description": "智听 Smart Dictation Helper - 单词/汉字数据集合。存储英语单词或语文生字及其释义、所属单元等信息。对应云数据库 Collection: words",
+  "description": "Homework Buddy · 智听 - 单词/汉字数据集合。存储英语单词或语文生字及其释义、所属单元等信息。对应云数据库 Collection: words",
   "type": "object",
   "required": ["_id", "word", "meaning", "unitId", "subject", "createdAt", "updatedAt"],
   "properties": {

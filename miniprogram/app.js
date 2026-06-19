@@ -7,8 +7,8 @@ App({
       return
     }
     wx.cloud.init({
-      // env 说明：请填写你的云开发环境 ID
-      env: 'smart-dictation-prod',
+      // env 说明：请替换为你的真实云开发环境 ID；若只有一个环境可删除 env 字段使用默认环境
+      env: 'your-cloud-env-id',
       traceUser: true
     })
 

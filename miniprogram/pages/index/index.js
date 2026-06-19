@@ -1,6 +1,6 @@
 // pages/index/index.js - 首页：听写配置
 const { getUnits } = require('../../utils/db.js')
-const { getDictationList } = require('../../utils/aiClient.js')
+const { getDictationList, addWord } = require('../../utils/aiClient.js')
 
 Page({
   data: {
@@ -35,7 +35,19 @@ Page({
     // 间隔时间（秒）
     interval: 5,
 
-    submitting: false
+    submitting: false,
+
+    // 手动加词弹窗
+    showAddModal: false,
+    addForm: {
+      word: '',
+      meaning: '',
+      pinyin: '',
+      partOfSpeech: '',
+      phonetic: '',
+      lesson: 1
+    },
+    adding: false
   },
 
   onLoad() {
@@ -183,5 +195,85 @@ Page({
   // 跳转我的
   onProfile() {
     wx.switchTab && wx.navigateTo({ url: '/pages/profile/profile' })
+  },
+
+  // ========== 手动加词 ==========
+  onShowAddModal() {
+    const { selectedUnitIds, subject } = this.data
+    if (selectedUnitIds.length === 0) {
+      wx.showToast({ title: '请先选择一个单元', icon: 'none' })
+      return
+    }
+    this.setData({
+      showAddModal: true,
+      addForm: {
+        word: '',
+        meaning: '',
+        pinyin: '',
+        partOfSpeech: '',
+        phonetic: '',
+        lesson: 1
+      }
+    })
+  },
+
+  onHideAddModal() {
+    this.setData({ showAddModal: false })
+  },
+
+  onAddInput(e) {
+    const { field } = e.currentTarget.dataset
+    const { value } = e.detail
+    this.setData({
+      [`addForm.${field}`]: value
+    })
+  },
+
+  onAddNumberInput(e) {
+    const { field } = e.currentTarget.dataset
+    const value = parseInt(e.detail.value, 10) || 1
+    this.setData({
+      [`addForm.${field}`]: value
+    })
+  },
+
+  async onAddSubmit() {
+    const { addForm, selectedUnitIds, subject } = this.data
+    const unitId = selectedUnitIds[0]
+
+    if (!addForm.word.trim() || !addForm.meaning.trim()) {
+      wx.showToast({ title: '单词和释义不能为空', icon: 'none' })
+      return
+    }
+
+    this.setData({ adding: true })
+    wx.showLoading({ title: '添加中...' })
+
+    try {
+      const res = await addWord({
+        word: addForm.word.trim(),
+        meaning: addForm.meaning.trim(),
+        unitId,
+        subject,
+        pinyin: addForm.pinyin.trim(),
+        partOfSpeech: addForm.partOfSpeech.trim(),
+        phonetic: addForm.phonetic.trim(),
+        lesson: Number(addForm.lesson) || 1
+      })
+
+      if (res.code !== 0) {
+        wx.showToast({ title: res.message || '添加失败', icon: 'none' })
+        return
+      }
+
+      wx.showToast({ title: '添加成功', icon: 'success' })
+      this.onHideAddModal()
+      this.loadUnits(subject)
+    } catch (err) {
+      wx.showToast({ title: '添加失败', icon: 'none' })
+    } finally {
+      this.setData({ adding: false })
+      wx.hideLoading()
+    }
   }
 })

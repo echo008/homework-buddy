@@ -1,8 +1,12 @@
 // utils/db.js - 云数据库操作封装
 // 统一封装集合调用，便于维护与错误处理
 
-const db = wx.cloud.database()
-const _ = db.command
+function getDb() {
+  if (!getDb._db) {
+    getDb._db = wx.cloud.database()
+  }
+  return getDb._db
+}
 
 /**
  * 集合名常量，避免硬编码拼写错误
@@ -26,7 +30,7 @@ async function getUnits(options = {}) {
     if (grade) where.grade = grade
     if (semester) where.semester = semester
 
-    const { data } = await db.collection(COLLECTIONS.UNITS)
+    const { data } = await getDb().collection(COLLECTIONS.UNITS)
       .where(where)
       .orderBy('order', 'asc')
       .get()
@@ -44,7 +48,7 @@ async function getUnits(options = {}) {
  */
 async function getWordCountByUnit(unitId) {
   try {
-    const { total } = await db.collection(COLLECTIONS.WORDS)
+    const { total } = await getDb().collection(COLLECTIONS.WORDS)
       .where({ unitId })
       .count()
     return total
@@ -61,7 +65,7 @@ async function getWordCountByUnit(unitId) {
  */
 async function saveUserLog(logData) {
   try {
-    const { _id } = await db.collection(COLLECTIONS.USER_LOGS).add({
+    const { _id } = await getDb().collection(COLLECTIONS.USER_LOGS).add({
       data: {
         ...logData,
         createdAt: new Date().toISOString()
@@ -82,7 +86,7 @@ async function saveUserLog(logData) {
  */
 async function getUserLogs(openid, limit = 20) {
   try {
-    const { data } = await db.collection(COLLECTIONS.USER_LOGS)
+    const { data } = await getDb().collection(COLLECTIONS.USER_LOGS)
       .where({ openid })
       .orderBy('createdAt', 'desc')
       .limit(limit)
@@ -96,7 +100,7 @@ async function getUserLogs(openid, limit = 20) {
 
 module.exports = {
   COLLECTIONS,
-  _,
+  getDb,
   getUnits,
   getWordCountByUnit,
   saveUserLog,
