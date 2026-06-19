@@ -1,8 +1,46 @@
-<!--pages/scan/scan.wxml - 拍照导入页（占位）-->
-<view class="container scan-empty">
-  <view class="empty-icon">📷</view>
-  <view class="empty-title">拍照识字导入</view>
-  <view class="empty-desc">拍一张课本照片，AI 自动识别并结构化为单词表</view>
-  <button class="btn-primary" bindtap="onChooseImage">选择照片</button>
-  <view class="empty-tip">该功能将在第二阶段上线</view>
+<!--pages/scan/scan.wxml - 拍照识字导入页-->
+<view class="container scan-page">
+  <view class="scan-header">
+    <view class="scan-icon">📷</view>
+    <view class="scan-title">拍照识字导入</view>
+    <view class="scan-desc">
+      {{subject === 'english' ? '英语' : '语文'}} · 拍一张课本照片，AI 自动识别并结构化为单词表
+    </view>
+  </view>
+
+  <!-- 选择/拍照按钮 -->
+  <button
+    class="btn-primary scan-btn"
+    bindtap="onChooseImage"
+    loading="{{loading}}"
+    disabled="{{loading}}"
+  >
+    {{loading ? '识别中...' : '选择或拍摄课本照片'}}
+  </button>
+
+  <!-- 状态提示 -->
+  <view class="scan-status" wx:if="{{status}}">{{status}}</view>
+
+  <!-- 识别结果 -->
+  <view class="card result-card" wx:if="{{resultWords.length > 0}}">
+    <view class="section-title">
+      识别结果（{{count}}）
+      <text class="demo-tag" wx:if="{{demo}}">演示模式</text>
+    </view>
+    <view class="result-list">
+      <view class="result-item" wx:for="{{resultWords}}" wx:key="index">
+        <text class="result-word">{{item.word}}</text>
+        <text class="result-meaning">{{item.meaning}}</text>
+        <text class="result-meta" wx:if="{{item.phonetic || item.pinyin}}">
+          {{item.phonetic || item.pinyin}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作栏 -->
+  <view class="action-bar" wx:if="{{resultWords.length > 0}}">
+    <button class="btn-secondary" bindtap="onBack">返回</button>
+    <button class="btn-primary" bindtap="onGoHome">去首页听写</button>
+  </view>
 </view>

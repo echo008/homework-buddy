@@ -11,6 +11,24 @@ App({
       env: 'smart-dictation-prod',
       traceUser: true
     })
+
+    // 获取用户 OPENID，用于听写记录归属
+    this.fetchOpenid()
+  },
+
+  fetchOpenid() {
+    wx.cloud.callFunction({
+      name: 'login',
+      success: (res) => {
+        if (res.result && res.result.code === 0) {
+          this.globalData.openid = res.result.data.openid
+          console.log('openid 获取成功')
+        }
+      },
+      fail: (err) => {
+        console.error('获取 openid 失败:', err)
+      }
+    })
   },
 
   globalData: {

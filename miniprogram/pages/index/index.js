@@ -170,7 +170,14 @@ Page({
 
   // 跳转拍照页
   onScan() {
-    wx.navigateTo({ url: '/pages/scan/scan' })
+    const { subject, selectedUnitIds } = this.data
+    if (selectedUnitIds.length === 0) {
+      wx.showToast({ title: '请先选择一个单元', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: `/pages/scan/scan?subject=${subject}&unitId=${selectedUnitIds[0]}`
+    })
   },
 
   // 跳转我的

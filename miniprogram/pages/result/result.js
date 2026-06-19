@@ -14,17 +14,21 @@ Page({
 
   onLoad() {
     const eventChannel = this.getOpenerEventChannel()
+    if (!eventChannel || !eventChannel.on) {
+      wx.showToast({ title: '数据加载异常', icon: 'none' })
+      return
+    }
     eventChannel.on('resultData', (data) => {
-      const wrongWords = data.answers.filter(a => !a.isCorrect)
+      const wrongWords = (data.answers || []).filter(a => !a.isCorrect)
       this.setData({
-        answers: data.answers,
-        total: data.total,
-        correctCount: data.correctCount,
-        wrongCount: data.wrongCount,
-        accuracy: data.accuracy,
+        answers: data.answers || [],
+        total: data.total || 0,
+        correctCount: data.correctCount || 0,
+        wrongCount: data.wrongCount || 0,
+        accuracy: data.accuracy || 0,
         wrongWords
       })
-      this.saveLog(data)
+      this.saveLog({ ...data, wrongWords })
     })
   },
 
@@ -32,22 +36,24 @@ Page({
   async saveLog(data) {
     try {
       const app = getApp()
+      const openid = app.globalData.openid || ''
       await saveUserLog({
-        openid: app.globalData.openid || '',
-        unitIds: data.unitIds,
-        subject: data.subject,
-        mode: data.mode,
-        wordCountRange: { min: data.total, max: data.total },
-        totalWords: data.total,
-        correctCount: data.correctCount,
-        wrongCount: data.wrongCount,
-        accuracy: data.accuracy,
-        wrongWords: data.wrongWords,
+        openid,
+        unitIds: data.unitIds || [],
+        subject: data.subject || 'english',
+        mode: data.mode || 'en2cn',
+        wordCountRange: { min: data.total || 0, max: data.total || 0 },
+        totalWords: data.total || 0,
+        correctCount: data.correctCount || 0,
+        wrongCount: data.wrongCount || 0,
+        accuracy: data.accuracy || 0,
+        wrongWords: data.wrongWords || [],
         status: 'completed'
       })
       this.setData({ saved: true })
     } catch (err) {
       console.error('保存听写记录失败:', err)
+      wx.showToast({ title: '记录保存失败', icon: 'none' })
     }
   },
 
@@ -64,16 +70,21 @@ Page({
           questions: this.data.wrongWords.map((w, i) => ({
             index: i + 1,
             wordId: w.wordId,
+            unitId: '',
+            audioUrl: '',
             prompt: w.word,
-            answer: w.correctAnswer
+            promptType: w.promptType || 'english',
+            answer: w.correctAnswer,
+            answerType: w.answerType || 'chinese'
           })),
-          total: this.data.wrongWords.length
+          total: this.data.wrongWords.length,
+          unitIds: []
         })
       }
     })
   },
 
   onBackHome() {
-    wx.navigateBack({ delta: 10 })
+    wx.reLaunch({ url: '/pages/index/index' })
   }
 })

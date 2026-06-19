@@ -1,0 +1,16 @@
+{
+  "name": "parseOcr",
+  "version": "1.0.0",
+  "description": "OCR 识别课本图片并通过大模型清洗为结构化单词数据",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "wx-server-sdk": "~3.0.1",
+    "openai": "~4.52.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
