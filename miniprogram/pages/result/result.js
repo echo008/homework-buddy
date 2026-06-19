@@ -51,6 +51,7 @@ Page({
   },
 
   async saveLog(data) {
+    if (this.data.saved) return
     const { wordCountRange } = this.data
     try {
       const res = await saveUserLog({

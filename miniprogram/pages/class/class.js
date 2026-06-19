@@ -349,7 +349,14 @@ Page({
       const res = await getManagedUnits(currentClass.subject)
       if (res.code === 0) {
         const app = getApp()
-        const openid = app.globalData.openid || ''
+        let openid = app.globalData.openid
+        if (!openid) {
+          try {
+            openid = await app.ensureOpenid()
+          } catch (err) {
+            console.error('获取 openid 失败:', err)
+          }
+        }
         // 仅显示当前用户自己创建的单元（共享单元无法再次共享，避免误选报错）
         const myOwnUnits = (res.data || []).filter(u => u.createdBy === openid)
         this.setData({ myUnits: myOwnUnits })

@@ -60,8 +60,13 @@
   </view>
 
   <!-- 操作 -->
-  <button class="btn-primary btn-next" bindtap="onNext">
-    {{currentIndex + 1 < total ? '下一题' : '完成听写'}}
+  <button
+    class="btn-primary btn-next"
+    bindtap="onNext"
+    loading="{{submitting}}"
+    disabled="{{submitting}}"
+  >
+    {{submitting ? '提交中...' : (currentIndex + 1 < total ? '下一题' : '完成听写')}}
   </button>
 </view>
 

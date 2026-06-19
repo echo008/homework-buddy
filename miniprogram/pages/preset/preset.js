@@ -45,6 +45,9 @@ Page({
   },
 
   async onLoad() {
+    // 请求序列号，防止快速切换条件时旧请求覆盖新结果
+    this._textbookReqSeq = 0
+    this._unitReqSeq = 0
     await this.loadFilters()
     await this.loadTextbooks()
     this.setData({ loading: false })
@@ -70,6 +73,7 @@ Page({
   },
 
   async loadTextbooks() {
+    const seq = ++this._textbookReqSeq
     const { selectedGradeLevel, selectedSubject, selectedVersion } = this.data
     try {
       const res = await listPresetTextbooks({
@@ -77,6 +81,8 @@ Page({
         subject: selectedSubject,
         version: selectedVersion
       })
+      // 快速切换条件时，丢弃过期请求结果
+      if (seq !== this._textbookReqSeq) return
       if (res.code !== 0) {
         wx.showToast({ title: res.message || '加载教材失败', icon: 'none' })
         this.setData({ textbooks: [], units: [] })
@@ -91,6 +97,7 @@ Page({
         await this.loadUnits(textbooks[0]._id)
       }
     } catch (err) {
+      if (seq !== this._textbookReqSeq) return
       console.error('加载教材失败:', err)
       wx.showToast({ title: '加载教材失败', icon: 'none' })
     }
@@ -98,6 +105,7 @@ Page({
 
   async loadUnits(textbookId) {
     if (!textbookId) return
+    const seq = ++this._unitReqSeq
     const { selectedSubject, selectedContentType } = this.data
     try {
       const res = await listPresetUnits({
@@ -105,6 +113,7 @@ Page({
         subject: selectedSubject,
         contentType: selectedContentType
       })
+      if (seq !== this._unitReqSeq) return
       if (res.code !== 0) {
         wx.showToast({ title: res.message || '加载单元失败', icon: 'none' })
         this.setData({ units: [], selectedUnitIds: [], selectedUnitMap: {} })
@@ -116,6 +125,7 @@ Page({
         selectedUnitMap: {}
       })
     } catch (err) {
+      if (seq !== this._unitReqSeq) return
       console.error('加载单元失败:', err)
       wx.showToast({ title: '加载单元失败', icon: 'none' })
     }
@@ -287,6 +297,6 @@ Page({
   },
 
   goCustomInput() {
-    wx.reLaunch({ url: '/pages/index/index' })
+    wx.reLaunch({ url: `/pages/index/index?subject=${this.data.selectedSubject}` })
   }
 })
