@@ -1,5 +1,12 @@
 // cloudfunctions/wordManage/index.js
 // 单词管理：创建、编辑、删除、列表
+//
+// 📌 数据库索引建议（云开发控制台 → 数据库 → 索引管理）：
+//   words 集合：
+//     - { unitId: 1 }               单元下单词查询
+//     - { unitId: 1, word: 1 }      去重校验
+//     - { createdBy: 1 }            按创建者查询
+//     - { subject: 1, unitId: 1 }   按学科+单元筛选
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })

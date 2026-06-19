@@ -55,7 +55,7 @@
       bindinput="onInput"
       confirm-type="done"
       bindconfirm="onNext"
-      focus
+      focus="{{inputFocus}}"
     />
   </view>
 

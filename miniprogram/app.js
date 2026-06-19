@@ -6,14 +6,22 @@ App({
       console.error('请使用 2.2.3 或以上的基础库以使用云能力')
       return
     }
+    // ⚠️ 重要：请将下方 env 替换为你的真实云开发环境 ID
+    // 获取方式：微信开发者工具 → 云开发控制台 → 设置 → 环境ID
     wx.cloud.init({
-      // env 说明：请替换为你的真实云开发环境 ID；若只有一个环境可删除 env 字段使用默认环境
       env: 'your-cloud-env-id',
       traceUser: true
     })
 
     // 获取用户 OPENID，用于听写记录归属
     this.fetchOpenid()
+
+    // 监听网络状态变化，离线时提示用户
+    wx.onNetworkStatusChange((res) => {
+      if (!res.isConnected) {
+        wx.showToast({ title: '网络已断开，部分功能不可用', icon: 'none', duration: 2500 })
+      }
+    })
   },
 
   /**

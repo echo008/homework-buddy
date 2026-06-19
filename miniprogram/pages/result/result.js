@@ -101,6 +101,10 @@ Page({
           mode,
           subject
         })
+      },
+      fail: (err) => {
+        console.error('跳转听写页失败:', err)
+        wx.showToast({ title: '页面跳转失败，请重试', icon: 'none' })
       }
     })
   },

@@ -1,5 +1,10 @@
 // cloudfunctions/unitManage/index.js
-// 单元管理：创建、编辑、删除、列表
+// 单元管理：创建、编辑、删除、列表（按 createdBy 过滤 + 合并班级共享单元）
+//
+// 📌 数据库索引建议（云开发控制台 → 数据库 → 索引管理）：
+//   units 集合：
+//     - { createdBy: 1, subject: 1 }  按用户+学科查询
+//     - { _id: 1 }                    主键查询
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })

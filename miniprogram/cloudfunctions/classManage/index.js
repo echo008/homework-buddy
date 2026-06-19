@@ -1,5 +1,12 @@
 // cloudfunctions/classManage/index.js
-// 班级共享：创建、加入、查看、共享词库、退出班级
+// 班级共享：创建、加入、查看、共享词库、退出/解散班级
+//
+// 📌 数据库索引建议（云开发控制台 → 数据库 → 索引管理）：
+//   classes 集合：
+//     - { createdBy: 1 }              按创建者查询
+//     - { members: 1 }                按成员查询（数组索引）
+//     - { sharedUnitIds: 1 }          按共享单元查询
+//     - { code: 1 }                   按班级码查询（唯一）
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })

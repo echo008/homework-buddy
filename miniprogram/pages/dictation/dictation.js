@@ -18,7 +18,8 @@ Page({
     dataReady: false,
     showExitConfirm: false,
     ttsUnavailable: false,
-    submitting: false // 防快速点击
+    submitting: false, // 防快速点击
+    inputFocus: true   // 输入框聚焦控制，切题时重新聚焦
   },
 
   countdownTimer: null,
@@ -238,7 +239,10 @@ Page({
 
     if (currentIndex + 1 < questions.length) {
       const nextIndex = currentIndex + 1
-      this.setData({ currentIndex: nextIndex, submitting: false })
+      // 先取消聚焦再重新聚焦，确保切题时键盘重新弹起
+      this.setData({ currentIndex: nextIndex, submitting: false, inputFocus: false })
+      // 下一帧重新聚焦
+      setTimeout(() => this.setData({ inputFocus: true }), 50)
       this.updateAudioFlag()
       this.startCountdown()
     } else {

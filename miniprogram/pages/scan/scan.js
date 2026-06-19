@@ -37,6 +37,17 @@ Page({
       },
       fail: (err) => {
         console.error('选择图片失败:', err)
+        // 用户拒绝相机/相册权限时，引导去设置页开启
+        if (err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
+          wx.showModal({
+            title: '需要权限',
+            content: '需要相机和相册权限才能拍照识字，请在设置中开启',
+            confirmText: '去设置',
+            success: (res) => {
+              if (res.confirm) wx.openSetting()
+            }
+          })
+        }
       }
     })
   },
