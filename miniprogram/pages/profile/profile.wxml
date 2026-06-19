@@ -1,0 +1,27 @@
+<!--pages/profile/profile.wxml - 我的/历史记录-->
+<view class="container">
+  <view class="card profile-header">
+    <view class="avatar">📚</view>
+    <view class="profile-name">智听学员</view>
+  </view>
+
+  <view class="section-title">最近听写</view>
+
+  <view wx:if="{{logs.length > 0}}">
+    <view class="card log-item" wx:for="{{logs}}" wx:key="_id">
+      <view class="log-top">
+        <text class="log-subject">{{item.subject === 'english' ? '英语' : '语文'}}</text>
+        <text class="log-accuracy">{{item.accuracy}}%</text>
+      </view>
+      <view class="log-bottom">
+        <text>{{item.correctCount}}/{{item.totalWords}} 正确</text>
+        <text class="log-time">{{item.createdAt}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card empty" wx:elif="{{!loading}}">
+    <text>暂无听写记录</text>
+    <text class="empty-tip">去首页开始第一次听写吧</text>
+  </view>
+</view>

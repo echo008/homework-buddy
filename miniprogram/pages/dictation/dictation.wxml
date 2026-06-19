@@ -1,0 +1,35 @@
+<!--pages/dictation/dictation.wxml - 听写进行页-->
+<view class="container dictation-page">
+  <!-- 进度 -->
+  <view class="progress-bar">
+    <view class="progress-text">{{currentIndex + 1}} / {{total}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{(currentIndex + 1) / total * 100}}%"></view>
+    </view>
+  </view>
+
+  <!-- 题目区 -->
+  <view class="card question-card" wx:if="{{questions.length > 0}}">
+    <view class="question-prompt">{{questions[currentIndex].prompt}}</view>
+    <view class="replay-btn" bindtap="onReplay">🔊 再听一遍</view>
+  </view>
+
+  <!-- 作答区 -->
+  <view class="card">
+    <view class="section-title">请输入答案</view>
+    <input
+      class="answer-input"
+      type="text"
+      value="{{userInput}}"
+      placeholder="在此输入..."
+      bindinput="onInput"
+      confirm-type="done"
+      bindconfirm="onNext"
+    />
+  </view>
+
+  <!-- 操作 -->
+  <button class="btn-primary" bindtap="onNext">
+    {{currentIndex + 1 < total ? '下一题' : '完成听写'}}
+  </button>
+</view>

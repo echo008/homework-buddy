@@ -1,0 +1,9 @@
+{
+  "name": "getDictationList",
+  "version": "1.0.0",
+  "description": "听写引擎核心：根据单元/课次筛选 + Min-Max 数量随机抽题",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,0 +1,8 @@
+<!--pages/scan/scan.wxml - 拍照导入页（占位）-->
+<view class="container scan-empty">
+  <view class="empty-icon">📷</view>
+  <view class="empty-title">拍照识字导入</view>
+  <view class="empty-desc">拍一张课本照片，AI 自动识别并结构化为单词表</view>
+  <button class="btn-primary" bindtap="onChooseImage">选择照片</button>
+  <view class="empty-tip">该功能将在第二阶段上线</view>
+</view>

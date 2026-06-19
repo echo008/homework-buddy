@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/scan/scan",
+    "pages/dictation/dictation",
+    "pages/result/result",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#4a90d9",
+    "navigationBarTitleText": "智听",
+    "navigationBarTextStyle": "white"
+  },
+  "style": "v2",
+  "sitemapLocation": "../sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

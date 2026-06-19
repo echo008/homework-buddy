@@ -1,0 +1,106 @@
+<!--pages/index/index.wxml - 首页：听写配置-->
+<view class="container">
+  <!-- 学科切换 -->
+  <view class="subject-tabs">
+    <view
+      wx:for="{{subjectTabs}}"
+      wx:key="key"
+      class="tab {{subject === item.key ? 'tab-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSubjectChange"
+    >{{item.label}}</view>
+  </view>
+
+  <!-- 单元多选 -->
+  <view class="card">
+    <view class="section-title">选择单元</view>
+    <view class="unit-grid" wx:if="{{units.length > 0}}">
+      <view
+        wx:for="{{units}}"
+        wx:key="_id"
+        class="unit-chip {{selectedUnitIds.includes(item._id) ? 'chip-active' : ''}}"
+        data-id="{{item._id}}"
+        bindtap="onUnitToggle"
+      >
+        <text class="chip-name">{{item.name}}</text>
+        <text class="chip-count">{{item.wordCount}}词</text>
+      </view>
+    </view>
+    <view class="empty-tip" wx:else>
+      <text>暂无单元数据</text>
+      <view class="empty-btn" bindtap="onScan">去拍照导入</view>
+    </view>
+  </view>
+
+  <!-- 听写模式 -->
+  <view class="card">
+    <view class="section-title">听写模式</view>
+    <view class="mode-list">
+      <view
+        wx:for="{{modeOptions[subject]}}"
+        wx:key="value"
+        class="mode-item {{mode === item.value ? 'mode-active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="onModeChange"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <!-- 数量区间 -->
+  <view class="card">
+    <view class="section-title">听写数量（随机 {{wordCountRange.min}}-{{wordCountRange.max}} 个）</view>
+    <view class="range-row">
+      <text class="range-label">最少</text>
+      <slider
+        class="range-slider"
+        min="5"
+        max="50"
+        step="1"
+        value="{{countMin}}"
+        block-size="22"
+        activeColor="#4a90d9"
+        bindchange="onMinChange"
+      />
+      <text class="range-value">{{countMin}}</text>
+    </view>
+    <view class="range-row">
+      <text class="range-label">最多</text>
+      <slider
+        class="range-slider"
+        min="5"
+        max="50"
+        step="1"
+        value="{{countMax}}"
+        block-size="22"
+        activeColor="#4a90d9"
+        bindchange="onMaxChange"
+      />
+      <text class="range-value">{{countMax}}</text>
+    </view>
+  </view>
+
+  <!-- 间隔时间 -->
+  <view class="card">
+    <view class="section-title">每题间隔（{{interval}} 秒）</view>
+    <slider
+      min="3"
+      max="15"
+      step="1"
+      value="{{interval}}"
+      block-size="22"
+      activeColor="#4a90d9"
+      bindchange="onIntervalChange"
+    />
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-bar">
+    <button class="btn-secondary" bindtap="onScan">拍照导入</button>
+    <button
+      class="btn-primary"
+      bindtap="onStart"
+      loading="{{submitting}}"
+      disabled="{{submitting || selectedUnitIds.length === 0}}"
+    >开始听写</button>
+  </view>
+</view>
