@@ -72,15 +72,18 @@ Page({
 
   // 加载单元列表（走云函数，按当前用户 createdBy 过滤）
   async loadUnits(subject) {
-    wx.showLoading({ title: '加载中...' })
+    // 首次加载（units 为空）才显示 loading，避免从其他页返回时频繁闪烁
+    const isFirstLoad = this.data.units.length === 0 && !this._loadedOnce
+    if (isFirstLoad) wx.showLoading({ title: '加载中...' })
     try {
       const res = await getManagedUnits(subject)
       const units = (res && res.code === 0) ? (res.data || []) : []
       this.setData({ units, selectedUnitIds: [] })
+      this._loadedOnce = true
     } catch (err) {
       wx.showToast({ title: '单元加载失败', icon: 'none' })
     } finally {
-      wx.hideLoading()
+      if (isFirstLoad) wx.hideLoading()
     }
   },
 
@@ -159,11 +162,11 @@ Page({
       })
 
       if (res.code !== 0) {
-        wx.showToast({ title: res.message, icon: 'none' })
+        wx.showToast({ title: res.message || '生成失败', icon: 'none' })
         return
       }
 
-      if (res.data.words.length === 0) {
+      if (!res.data || !res.data.words || res.data.words.length === 0) {
         wx.showToast({ title: '未抽到单词', icon: 'none' })
         return
       }
@@ -178,6 +181,10 @@ Page({
             total: res.data.total,
             unitIds: selectedUnitIds
           })
+        },
+        fail: (err) => {
+          console.error('跳转听写页失败:', err)
+          wx.showToast({ title: '页面跳转失败，请重试', icon: 'none' })
         }
       })
     } catch (err) {

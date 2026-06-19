@@ -154,21 +154,23 @@ async function listUnits(subject, openid) {
   const where = {}
   if (ALLOWED_SUBJECTS.includes(subject)) where.subject = subject
 
-  // 查询当前用户创建的单元
-  const { data: myUnits } = await db.collection('units')
-    .where({ ...where, createdBy: openid })
-    .orderBy('order', 'asc')
-    .orderBy('createdAt', 'desc')
-    .get()
+  // 分页查询当前用户创建的单元（避免单次 100 条限制）
+  const myUnits = await paginateQuery(
+    db.collection('units')
+      .where({ ...where, createdBy: openid })
+      .orderBy('order', 'asc')
+      .orderBy('createdAt', 'desc')
+  )
 
-  // 查询当前用户所在班级共享的单元
-  const { data: myClasses } = await db.collection('classes')
-    .where(_.or([
-      { createdBy: openid },
-      { members: openid }
-    ]))
-    .field({ sharedUnitIds: true })
-    .get()
+  // 分页查询当前用户所在班级
+  const myClasses = await paginateQuery(
+    db.collection('classes')
+      .where(_.or([
+        { createdBy: openid },
+        { members: openid }
+      ]))
+      .field({ sharedUnitIds: true })
+  )
 
   const sharedUnitIds = new Set()
   myClasses.forEach(cls => {
@@ -177,11 +179,11 @@ async function listUnits(subject, openid) {
 
   let sharedUnits = []
   if (sharedUnitIds.size > 0) {
-    const res = await db.collection('units')
-      .where({ ...where, _id: _.in(Array.from(sharedUnitIds)) })
-      .orderBy('order', 'asc')
-      .get()
-    sharedUnits = res.data
+    sharedUnits = await paginateQuery(
+      db.collection('units')
+        .where({ ...where, _id: _.in(Array.from(sharedUnitIds)) })
+        .orderBy('order', 'asc')
+    )
   }
 
   // 合并去重（自己创建的 + 班级共享的）
@@ -198,4 +200,21 @@ async function listUnits(subject, openid) {
   merged.sort((a, b) => (a.order || 0) - (b.order || 0))
 
   return { code: 0, data: merged }
+}
+
+/**
+ * 分页查询工具：自动翻页直到取完所有数据
+ * @param {Object} queryChain 已组装好 where/orderBy/field 的查询链
+ * @param {number} pageSize 每页大小
+ * @returns {Promise<Array>}
+ */
+async function paginateQuery(queryChain, pageSize = 100) {
+  let allData = []
+  let hasMore = true
+  while (hasMore) {
+    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
+    allData = allData.concat(data)
+    if (data.length < pageSize) hasMore = false
+  }
+  return allData
 }

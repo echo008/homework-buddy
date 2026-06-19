@@ -116,14 +116,14 @@ async function getClassDetail(classId, openid) {
     return { code: 5, message: '你不在该班级中' }
   }
 
-  // 共享单元列表
+  // 共享单元列表（分页查询）
   let sharedUnits = []
   if (data.sharedUnitIds && data.sharedUnitIds.length > 0) {
-    const res = await db.collection('units')
-      .where({ _id: _.in(data.sharedUnitIds) })
-      .orderBy('order', 'asc')
-      .get()
-    sharedUnits = res.data
+    sharedUnits = await paginateQuery(
+      db.collection('units')
+        .where({ _id: _.in(data.sharedUnitIds) })
+        .orderBy('order', 'asc')
+    )
   }
 
   return {
@@ -133,16 +133,34 @@ async function getClassDetail(classId, openid) {
 }
 
 async function getMyClasses(openid) {
-  // members 是数组，用 _.in 匹配
-  const { data } = await db.collection('classes')
-    .where(_.or([
-      { createdBy: openid },
-      { members: openid }
-    ]))
-    .orderBy('createdAt', 'desc')
-    .get()
+  // members 是数组，用 _.or 匹配；分页查询避免 100 条限制
+  const data = await paginateQuery(
+    db.collection('classes')
+      .where(_.or([
+        { createdBy: openid },
+        { members: openid }
+      ]))
+      .orderBy('createdAt', 'desc')
+  )
 
   return { code: 0, data }
+}
+
+/**
+ * 分页查询工具：自动翻页直到取完所有数据
+ * @param {Object} queryChain 已组装好 where/orderBy/field 的查询链
+ * @param {number} pageSize 每页大小
+ * @returns {Promise<Array>}
+ */
+async function paginateQuery(queryChain, pageSize = 100) {
+  let allData = []
+  let hasMore = true
+  while (hasMore) {
+    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
+    allData = allData.concat(data)
+    if (data.length < pageSize) hasMore = false
+  }
+  return allData
 }
 
 async function shareUnit(classId, unitId, openid) {

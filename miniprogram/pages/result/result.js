@@ -50,6 +50,10 @@ Page({
     try {
       const app = getApp()
       const openid = app.globalData.openid || ''
+      if (!openid) {
+        console.warn('openid 为空，跳过记录保存')
+        return
+      }
       await saveUserLog({
         openid,
         unitIds: data.unitIds || [],
@@ -66,17 +70,20 @@ Page({
       this.setData({ saved: true })
     } catch (err) {
       console.error('保存听写记录失败:', err)
+      // 记录保存失败不影响用户查看结果，但需提示用户
+      wx.showToast({ title: '成绩记录未保存，可继续查看', icon: 'none', duration: 2500 })
     }
   },
 
-  // 重测错题：保留原始 audioUrl
+  // 重测错题：保留原始 mode 与 subject，避免 mode=retry 污染后续记录
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
       wx.showToast({ title: '没有错题，棒极了！', icon: 'none' })
       return
     }
+    const { mode, subject, unitIds } = this.data
     wx.navigateTo({
-      url: '/pages/dictation/dictation?mode=retry',
+      url: `/pages/dictation/dictation?mode=${mode}&subject=${subject}`,
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
           questions: this.data.wrongWords.map((w, i) => ({
@@ -90,7 +97,9 @@ Page({
             answerType: w.answerType || 'chinese'
           })),
           total: this.data.wrongWords.length,
-          unitIds: this.data.unitIds || []
+          unitIds: unitIds || [],
+          mode,
+          subject
         })
       }
     })

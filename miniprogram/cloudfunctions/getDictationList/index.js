@@ -69,8 +69,8 @@ exports.main = async (event) => {
       where.lesson = _.in(lessons)
     }
 
-    // 2. 查询题库
-    const { data: wordList } = await db.collection('words').where(where).get()
+    // 2. 查询题库（分页，避免单次 100 条限制）
+    const wordList = await paginateQuery(db.collection('words').where(where))
 
     if (wordList.length === 0) {
       return {
@@ -122,17 +122,19 @@ async function getAccessibleUnitIds(openid, subject) {
   const where = {}
   if (['english', 'chinese'].includes(subject)) where.subject = subject
 
-  // 自己创建的单元
-  const { data: myUnits } = await db.collection('units')
-    .where({ ...where, createdBy: openid })
-    .field({ _id: true })
-    .get()
+  // 自己创建的单元（分页）
+  const myUnits = await paginateQuery(
+    db.collection('units')
+      .where({ ...where, createdBy: openid })
+      .field({ _id: true })
+  )
 
-  // 所在班级共享的单元
-  const { data: myClasses } = await db.collection('classes')
-    .where(_.or([{ createdBy: openid }, { members: openid }]))
-    .field({ sharedUnitIds: true })
-    .get()
+  // 所在班级（分页）
+  const myClasses = await paginateQuery(
+    db.collection('classes')
+      .where(_.or([{ createdBy: openid }, { members: openid }]))
+      .field({ sharedUnitIds: true })
+  )
 
   const sharedIds = new Set()
   myClasses.forEach(cls => {
@@ -141,17 +143,34 @@ async function getAccessibleUnitIds(openid, subject) {
 
   let sharedUnits = []
   if (sharedIds.size > 0) {
-    const res = await db.collection('units')
-      .where({ ...where, _id: _.in(Array.from(sharedIds)) })
-      .field({ _id: true })
-      .get()
-    sharedUnits = res.data
+    sharedUnits = await paginateQuery(
+      db.collection('units')
+        .where({ ...where, _id: _.in(Array.from(sharedIds)) })
+        .field({ _id: true })
+    )
   }
 
   const idSet = new Set()
   myUnits.forEach(u => idSet.add(u._id))
   sharedUnits.forEach(u => idSet.add(u._id))
   return idSet
+}
+
+/**
+ * 分页查询工具：自动翻页直到取完所有数据
+ * @param {Object} queryChain 已组装好 where/field 的查询链
+ * @param {number} pageSize 每页大小
+ * @returns {Promise<Array>}
+ */
+async function paginateQuery(queryChain, pageSize = 100) {
+  let allData = []
+  let hasMore = true
+  while (hasMore) {
+    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
+    allData = allData.concat(data)
+    if (data.length < pageSize) hasMore = false
+  }
+  return allData
 }
 
 /**

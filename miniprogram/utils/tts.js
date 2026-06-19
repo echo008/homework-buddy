@@ -10,18 +10,40 @@ try {
 
 const FALLBACK_LANG = 'zh_CN'
 
+// 当前正在播放的 TTS 音频上下文（单例，便于外部停止）
+let currentTtsAudio = null
+
+/**
+ * 停止当前 TTS 播放
+ */
+function stop() {
+  if (currentTtsAudio) {
+    try {
+      currentTtsAudio.stop()
+    } catch (e) {}
+    try {
+      currentTtsAudio.destroy()
+    } catch (e) {}
+    currentTtsAudio = null
+  }
+}
+
 /**
  * 播报文本
  * @param {string} text 需要播报的内容
  * @param {string} lang 语言：zh_CN / en_US
  * @param {Object} callbacks 生命周期回调 { onStart, onEnd, onError }
+ * @returns {Object} 控制句柄 { stop }
  */
 function speak(text, lang = FALLBACK_LANG, callbacks = {}) {
   if (!text || !text.trim()) {
-    return
+    return { stop }
   }
 
   const content = text.trim()
+
+  // 播报前先停止上一个 TTS
+  stop()
 
   if (plugin && typeof plugin.textToSpeech === 'function') {
     plugin.textToSpeech({
@@ -39,11 +61,14 @@ function speak(text, lang = FALLBACK_LANG, callbacks = {}) {
   } else {
     fallbackSpeak(content, lang, callbacks)
   }
+
+  return { stop }
 }
 
 function playAudio(src, callbacks) {
   const innerAudioContext = wx.createInnerAudioContext()
   innerAudioContext.src = src
+  currentTtsAudio = innerAudioContext
 
   innerAudioContext.onPlay(() => {
     if (typeof callbacks.onStart === 'function') callbacks.onStart()
@@ -52,12 +77,14 @@ function playAudio(src, callbacks) {
   innerAudioContext.onEnded(() => {
     if (typeof callbacks.onEnd === 'function') callbacks.onEnd()
     innerAudioContext.destroy()
+    if (currentTtsAudio === innerAudioContext) currentTtsAudio = null
   })
 
   innerAudioContext.onError((err) => {
     console.error('音频播放失败:', err)
     if (typeof callbacks.onError === 'function') callbacks.onError(err)
     innerAudioContext.destroy()
+    if (currentTtsAudio === innerAudioContext) currentTtsAudio = null
   })
 
   innerAudioContext.play()
@@ -90,5 +117,6 @@ function resolveLang(promptType, subject) {
 
 module.exports = {
   speak,
+  stop,
   resolveLang
 }

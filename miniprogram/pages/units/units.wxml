@@ -25,7 +25,7 @@
         </view>
         <view class="unit-actions">
           <view class="icon-btn" bindtap="goWords" data-id="{{item._id}}" data-name="{{item.name}}" data-subject="{{item.subject}}">📖</view>
-          <view class="icon-btn" bindtap="onEdit" data-unit="{{item}}">✏️</view>
+          <view class="icon-btn" bindtap="onEdit" data-id="{{item._id}}">✏️</view>
           <view class="icon-btn" bindtap="onDelete" data-id="{{item._id}}" data-name="{{item.name}}">🗑️</view>
         </view>
       </view>

@@ -174,12 +174,24 @@ async function deleteWord(wordId, openid) {
 async function listWords(unitId) {
   if (!unitId) return { code: 2, message: '缺少单元 ID' }
 
-  const { data } = await db.collection('words')
-    .where({ unitId })
-    .orderBy('createdAt', 'desc')
-    .get()
+  // 分页查询，避免单次 get 默认 100 条限制导致数据丢失
+  const PAGE_SIZE = 100
+  let allData = []
+  let hasMore = true
+  while (hasMore) {
+    const query = db.collection('words')
+      .where({ unitId })
+      .orderBy('createdAt', 'desc')
+      .skip(allData.length)
+      .limit(PAGE_SIZE)
+    const { data } = await query.get()
+    allData = allData.concat(data)
+    if (data.length < PAGE_SIZE) {
+      hasMore = false
+    }
+  }
 
-  return { code: 0, data }
+  return { code: 0, data: allData }
 }
 
 async function syncUnitWordCount(unitId) {

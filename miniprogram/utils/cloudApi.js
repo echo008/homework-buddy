@@ -1,16 +1,34 @@
 // utils/cloudApi.js - 云函数统一调用封装
 // 前端侧只做调度，所有业务逻辑与密钥均放在云函数
 
+/**
+ * 调用云函数
+ * @param {string} name 云函数名
+ * @param {Object} data 入参
+ * @returns {Promise<Object>} 云函数返回的 result，保证非空且含 code 字段
+ */
 function callCloud(name, data = {}) {
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
       name,
       data,
       success(res) {
-        resolve(res.result)
+        // 防御云函数返回空 result 的情况
+        const result = res && res.result
+        if (!result) {
+          resolve({ code: -1, message: '服务异常，请稍后重试' })
+          return
+        }
+        // 保证 result 有 code 字段，便于前端统一处理
+        if (typeof result.code === 'undefined') {
+          resolve({ code: -1, message: '服务返回异常', data: result })
+          return
+        }
+        resolve(result)
       },
       fail(err) {
         console.error(`云函数 ${name} 调用失败:`, err)
+        // 网络错误统一包装为 reject，前端 catch 中可提示重试
         reject(err)
       }
     })

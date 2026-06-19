@@ -22,7 +22,7 @@
     <view class="card" wx:if="{{classes.length > 0}}">
       <view class="section-title">我的班级</view>
       <view class="class-list">
-        <view class="class-item" wx:for="{{classes}}" wx:key="_id" bindtap="enterClass" data-cls="{{item}}">
+        <view class="class-item" wx:for="{{classes}}" wx:key="_id" bindtap="enterClass" data-id="{{item._id}}">
           <view class="class-main">
             <text class="class-name">{{item.name}}</text>
             <view class="class-meta">

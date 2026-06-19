@@ -16,18 +16,56 @@ App({
     this.fetchOpenid()
   },
 
-  fetchOpenid() {
+  /**
+   * 获取 openid，带最多 3 次重试
+   * @param {number} retryCount 当前重试次数
+   */
+  fetchOpenid(retryCount = 0) {
     wx.cloud.callFunction({
       name: 'login',
       success: (res) => {
-        if (res.result && res.result.code === 0) {
+        if (res.result && res.result.code === 0 && res.result.data && res.result.data.openid) {
           this.globalData.openid = res.result.data.openid
           console.log('openid 获取成功')
+        } else if (retryCount < 3) {
+          // 业务错误也重试
+          setTimeout(() => this.fetchOpenid(retryCount + 1), 1000 * (retryCount + 1))
         }
       },
       fail: (err) => {
         console.error('获取 openid 失败:', err)
+        if (retryCount < 3) {
+          // 网络错误重试，间隔递增（1s/2s/3s）
+          setTimeout(() => this.fetchOpenid(retryCount + 1), 1000 * (retryCount + 1))
+        }
       }
+    })
+  },
+
+  /**
+   * 确保 openid 已就绪（供页面调用）
+   * 若 openid 已存在直接返回；否则触发获取并等待
+   * @returns {Promise<string>}
+   */
+  ensureOpenid() {
+    if (this.globalData.openid) {
+      return Promise.resolve(this.globalData.openid)
+    }
+    return new Promise((resolve, reject) => {
+      let attempts = 0
+      const timer = setInterval(() => {
+        attempts += 1
+        if (this.globalData.openid) {
+          clearInterval(timer)
+          resolve(this.globalData.openid)
+        } else if (attempts > 10) {
+          // 超过 5 秒仍未获取到
+          clearInterval(timer)
+          reject(new Error('openid 获取超时'))
+        }
+      }, 500)
+      // 同时触发一次获取
+      this.fetchOpenid()
     })
   },
 

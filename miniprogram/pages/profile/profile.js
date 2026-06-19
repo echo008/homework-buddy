@@ -39,10 +39,16 @@ Page({
   async loadLogs() {
     try {
       const app = getApp()
-      const openid = app.globalData.openid || ''
+      // 等待 openid 就绪，避免首次启动时 openid 为 null 导致记录加载失败
+      let openid = app.globalData.openid || ''
       if (!openid) {
-        this.setData({ loading: false })
-        return
+        try {
+          openid = await app.ensureOpenid()
+        } catch (err) {
+          this.setData({ loading: false })
+          wx.showToast({ title: '用户信息获取失败', icon: 'none' })
+          return
+        }
       }
       const logs = await getUserLogs(openid, 50)
       // 时间格式化，避免直接显示 ISO 字符串
@@ -60,9 +66,10 @@ Page({
 
   computeStats(logs) {
     const totalTests = logs.length
-    const totalWords = logs.reduce((sum, log) => sum + (log.totalWords || 0), 0)
+    const totalWords = logs.reduce((sum, log) => sum + (Number(log.totalWords) || 0), 0)
+    // accuracy 可能从数据库读出为字符串，统一转 Number
     const avgAccuracy = totalTests > 0
-      ? Math.round(logs.reduce((sum, log) => sum + (log.accuracy || 0), 0) / totalTests * 10) / 10
+      ? Math.round(logs.reduce((sum, log) => sum + (Number(log.accuracy) || 0), 0) / totalTests * 10) / 10
       : 0
     return { totalTests, totalWords, avgAccuracy }
   },

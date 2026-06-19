@@ -62,22 +62,55 @@ async function uploadAudio(tempFilePath, folder = 'audio') {
   return fileID
 }
 
+// 当前正在播放的音频上下文（单例，避免连续点击叠加播放）
+let currentPlayContext = null
+
+/**
+ * 停止当前播放
+ */
+function stopPlay() {
+  if (currentPlayContext) {
+    try {
+      currentPlayContext.stop()
+    } catch (e) {}
+    try {
+      currentPlayContext.destroy()
+    } catch (e) {}
+    currentPlayContext = null
+  }
+}
+
 /**
  * 播放音频（支持云存储 fileID）
+ * 单例管理：播放新音频前自动停止上一个，避免叠加
  */
 async function playAudio(src) {
+  // 播放前先停止上一个
+  stopPlay()
+
   let url = src
   if (src && src.startsWith('cloud://')) {
-    const { fileList } = await wx.cloud.getTempFileURL({ fileList: [src] })
-    url = fileList[0].tempFileURL
+    try {
+      const { fileList } = await wx.cloud.getTempFileURL({ fileList: [src] })
+      if (fileList && fileList[0] && fileList[0].tempFileURL) {
+        url = fileList[0].tempFileURL
+      }
+    } catch (err) {
+      console.error('获取云文件临时链接失败:', err)
+    }
   }
 
   const innerAudioContext = wx.createInnerAudioContext()
+  currentPlayContext = innerAudioContext
   innerAudioContext.src = url
-  innerAudioContext.onEnded(() => innerAudioContext.destroy())
+  innerAudioContext.onEnded(() => {
+    innerAudioContext.destroy()
+    if (currentPlayContext === innerAudioContext) currentPlayContext = null
+  })
   innerAudioContext.onError((err) => {
     console.error('播放失败:', err)
     innerAudioContext.destroy()
+    if (currentPlayContext === innerAudioContext) currentPlayContext = null
   })
   innerAudioContext.play()
 }
@@ -86,5 +119,6 @@ module.exports = {
   startRecord,
   stopRecord,
   uploadAudio,
-  playAudio
+  playAudio,
+  stopPlay
 }

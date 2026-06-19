@@ -269,10 +269,12 @@ function isValidWord(item, subject) {
 
 // ========== 去重与入库 ==========
 async function dedupeWords(newWords, unitId, subject) {
-  const { data: existing } = await db.collection('words')
-    .where({ unitId, subject })
-    .field({ word: true })
-    .get()
+  // 分页查询已存在的单词，避免单次 100 条限制导致去重不完整
+  const existing = await paginateQuery(
+    db.collection('words')
+      .where({ unitId, subject })
+      .field({ word: true })
+  )
 
   const existedSet = new Set(existing.map(w => normalizeForDedupe(w.word)))
   return newWords.filter(item => {
@@ -281,6 +283,20 @@ async function dedupeWords(newWords, unitId, subject) {
     existedSet.add(key)
     return true
   })
+}
+
+/**
+ * 分页查询工具：自动翻页直到取完所有数据
+ */
+async function paginateQuery(queryChain, pageSize = 100) {
+  let allData = []
+  let hasMore = true
+  while (hasMore) {
+    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
+    allData = allData.concat(data)
+    if (data.length < pageSize) hasMore = false
+  }
+  return allData
 }
 
 function normalizeForDedupe(word) {
@@ -320,12 +336,22 @@ function buildWordDoc(item, subject, unitId, openid, now) {
   }
 }
 
+/**
+ * 串行批量插入，避免并发触发云数据库写入限流
+ * @param {Array} docs
+ * @returns {Promise<Array>} 已插入的文档（含 _id）
+ */
 async function batchInsert(docs) {
-  const results = await Promise.all(
-    docs.map(doc =>
-      db.collection('words').add({ data: doc }).then(res => ({ _id: res._id, ...doc }))
-    )
-  )
+  const results = []
+  for (const doc of docs) {
+    try {
+      const res = await db.collection('words').add({ data: doc })
+      results.push({ _id: res._id, ...doc })
+    } catch (err) {
+      console.error('单词入库失败:', doc.word, err)
+      // 单条失败不阻断整体流程，继续插入后续单词
+    }
+  }
   return results
 }
 

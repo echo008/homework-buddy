@@ -12,6 +12,7 @@ const mockDb = {
   field: jest.fn(() => mockDb),
   orderBy: jest.fn(() => mockDb),
   limit: jest.fn(() => mockDb),
+  skip: jest.fn(() => mockDb),
   get: jest.fn(() => Promise.resolve({ data: words })),
   count: jest.fn(() => Promise.resolve({ total: words.length })),
   add: jest.fn((doc) => Promise.resolve({ _id: `new_${Date.now()}` })),

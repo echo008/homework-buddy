@@ -165,9 +165,11 @@ Page({
 
   // ========== 班级详情 ==========
   enterClass(e) {
-    const cls = e.currentTarget.dataset.cls
-    this.setData({ view: 'detail', currentClass: cls })
-    this.loadClassDetail(cls._id)
+    // 仅传 _id，避免 dataset 序列化大对象（members 数组等）丢失数据
+    const classId = e.currentTarget.dataset.id
+    if (!classId) return
+    this.setData({ view: 'detail' })
+    this.loadClassDetail(classId)
   },
 
   backToList() {
@@ -187,7 +189,10 @@ Page({
           isCreator: res.data.createdBy === openid
         })
       } else {
-        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+        // 班级不存在或无权限时，清空当前班级并返回列表
+        wx.showToast({ title: res.message || '班级不存在', icon: 'none' })
+        this.setData({ currentClass: null })
+        setTimeout(() => this.backToList(), 1500)
       }
     } catch (err) {
       wx.showToast({ title: '加载失败', icon: 'none' })

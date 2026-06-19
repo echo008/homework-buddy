@@ -73,7 +73,13 @@ Page({
   },
 
   onEdit(e) {
-    const unit = e.currentTarget.dataset.unit
+    // 仅传 _id，从本地列表查找，避免 dataset 序列化大对象
+    const unitId = e.currentTarget.dataset.id
+    const unit = this.data.units.find(u => u._id === unitId)
+    if (!unit) {
+      wx.showToast({ title: '单元信息丢失，请刷新', icon: 'none' })
+      return
+    }
     this.setData({
       showModal: true,
       editing: true,

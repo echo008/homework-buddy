@@ -51,6 +51,8 @@ Page({
     if (this.data.recordState === 'recording') {
       audio.stopRecord().catch(() => {})
     }
+    // 退出页面时停止音频播放，避免后台继续播放
+    audio.stopPlay()
   },
 
   async loadWords() {
@@ -90,7 +92,13 @@ Page({
   },
 
   onEdit(e) {
-    const item = e.currentTarget.dataset.item
+    // 仅传 _id，从本地列表查找，避免 dataset 序列化大对象
+    const itemId = e.currentTarget.dataset.id
+    const item = this.data.words.find(w => w._id === itemId)
+    if (!item) {
+      wx.showToast({ title: '单词信息丢失，请刷新', icon: 'none' })
+      return
+    }
     this.setData({
       showModal: true,
       editing: true,

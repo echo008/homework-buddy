@@ -1,5 +1,5 @@
 // pages/dictation/dictation.js - 听写进行页（核心）
-const { speak, resolveLang } = require('../../utils/tts.js')
+const { speak, stop: stopTTS, resolveLang } = require('../../utils/tts.js')
 
 Page({
   data: {
@@ -17,12 +17,14 @@ Page({
     hasCustomAudio: false,
     dataReady: false,
     showExitConfirm: false,
-    ttsUnavailable: false
+    ttsUnavailable: false,
+    submitting: false // 防快速点击
   },
 
   countdownTimer: null,
   dataTimeout: null,
-  currentAudio: null, // 当前正在播放的音频上下文，切题/退出时统一销毁
+  currentAudio: null, // 当前正在播放的自定义音频上下文
+  isHidden: false, // 页面是否在后台
 
   onLoad(options) {
     const { mode, interval, subject } = options
@@ -78,12 +80,32 @@ Page({
       clearTimeout(this.dataTimeout)
       this.dataTimeout = null
     }
-    // 退出页面时销毁当前音频，避免后台继续播放
+    // 退出页面时销毁所有音频（自定义 + TTS），避免后台继续播放
     this.destroyCurrentAudio()
   },
 
-  // 销毁当前正在播放的音频上下文
+  // 页面切到后台：暂停倒计时与音频，避免状态错乱
+  onHide() {
+    this.isHidden = true
+    this.clearCountdown()
+    this.destroyCurrentAudio()
+    this.setData({ isPlaying: false, countdown: 0 })
+  },
+
+  // 页面回到前台：若未在退出确认弹窗中，重新播报当前题
+  onShow() {
+    if (this.isHidden && this.data.dataReady && !this.data.showExitConfirm) {
+      this.isHidden = false
+      // 回前台后重新播报当前题，恢复听写节奏
+      this.playCurrent()
+    } else if (this.isHidden) {
+      this.isHidden = false
+    }
+  },
+
+  // 销毁当前正在播放的音频（自定义音频 + TTS）
   destroyCurrentAudio() {
+    // 停止自定义录音
     if (this.currentAudio) {
       try {
         this.currentAudio.stop()
@@ -93,6 +115,8 @@ Page({
       } catch (e) {}
       this.currentAudio = null
     }
+    // 停止 TTS
+    stopTTS()
   },
 
   // 退出确认
@@ -124,7 +148,7 @@ Page({
     })
   },
 
-  // 播报当前题：优先使用自定义录音，否则用 TTS
+  // 播报当前题：优先使用自定义录音，否则用 TTS；拼音模式仅显示文字
   playCurrent() {
     const { questions, currentIndex } = this.data
     const current = questions[currentIndex]
@@ -132,9 +156,10 @@ Page({
 
     // 切换播放前先销毁上一个音频，避免叠加
     this.destroyCurrentAudio()
-    this.setData({ isPlaying: true, ttsUnavailable: false })
+    this.setData({ ttsUnavailable: false })
 
     if (current.audioUrl) {
+      this.setData({ isPlaying: true })
       this.currentAudio = playCustomAudio(current.audioUrl, {
         onEnd: () => {
           this.setData({ isPlaying: false })
@@ -147,7 +172,11 @@ Page({
           this.playTTS(current)
         }
       })
+    } else if (current.promptType === 'pinyin') {
+      // 拼音模式：TTS 无法准确读出带声调拼音，仅显示文字，不播报
+      this.setData({ isPlaying: false })
     } else {
+      this.setData({ isPlaying: true })
       this.playTTS(current)
     }
   },
@@ -177,16 +206,22 @@ Page({
   },
 
   onNext() {
+    // 防快速点击：提交中直接忽略
+    if (this.data.submitting) return
+    this.setData({ submitting: true })
+
     const { questions, currentIndex, userInput, answers } = this.data
     const current = questions[currentIndex]
-    if (!current) return
+    if (!current) {
+      this.setData({ submitting: false })
+      return
+    }
 
     // 进入下一题前停止当前音频播放，避免叠加
     this.destroyCurrentAudio()
     this.clearCountdown()
 
-    const normalizedUser = normalizeAnswer(userInput.trim(), current.answerType)
-    const normalizedCorrect = normalizeAnswer(current.answer, current.answerType)
+    const isCorrect = checkAnswer(userInput, current.answer, current.answerType)
 
     const newAnswers = [...answers, {
       wordId: current.wordId,
@@ -196,17 +231,18 @@ Page({
       correctAnswer: current.answer,
       userAnswer: userInput.trim(),
       audioUrl: current.audioUrl || '',
-      isCorrect: normalizedUser === normalizedCorrect
+      isCorrect
     }]
 
     this.setData({ answers: newAnswers, userInput: '' })
 
     if (currentIndex + 1 < questions.length) {
       const nextIndex = currentIndex + 1
-      this.setData({ currentIndex: nextIndex })
+      this.setData({ currentIndex: nextIndex, submitting: false })
       this.updateAudioFlag()
       this.startCountdown()
     } else {
+      // finish 内部会跳转，无需重置 submitting
       this.finish()
     }
   },
@@ -247,6 +283,12 @@ Page({
           answers, unitIds, mode, subject,
           total, correctCount, wrongCount, accuracy, wrongWords
         })
+      },
+      fail: (err) => {
+        console.error('跳转结果页失败:', err)
+        // 页面栈满或其他原因导致跳转失败，重置状态并提示
+        this.setData({ submitting: false })
+        wx.showToast({ title: '提交失败，请重试', icon: 'none' })
       }
     })
   }
@@ -272,9 +314,31 @@ function playCustomAudio(url, callbacks = {}) {
   return innerAudioContext
 }
 
+/**
+ * 答案比对：支持分号/逗号分隔的多义答案，任一匹配即算正确
+ * @param {string} userInput 用户输入
+ * @param {string} correctAnswer 标准答案（可能含 ; ；, ， 分隔的多义）
+ * @param {string} answerType english | chinese | pinyin
+ * @returns {boolean}
+ */
+function checkAnswer(userInput, correctAnswer, answerType) {
+  if (!userInput || !correctAnswer) return false
+
+  const userNorm = normalizeAnswer(userInput, answerType)
+  if (!userNorm) return false
+
+  // 标准答案按分号/逗号拆分为多个可接受答案
+  const acceptableList = String(correctAnswer)
+    .split(/[;；,，、]/)
+    .map(s => normalizeAnswer(s, answerType))
+    .filter(s => s.length > 0)
+
+  return acceptableList.some(acceptable => acceptable === userNorm)
+}
+
 function normalizeAnswer(value, answerType) {
   if (!value) return ''
-  let normalized = value.trim()
+  let normalized = String(value).trim()
   if (answerType === 'english') {
     normalized = normalized.toLowerCase().replace(/\s+/g, '')
   } else if (answerType === 'chinese' || answerType === 'pinyin') {

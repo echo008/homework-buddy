@@ -23,7 +23,7 @@
           </view>
         </view>
         <view class="word-actions">
-          <view class="icon-btn" bindtap="onEdit" data-item="{{item}}">✏️</view>
+          <view class="icon-btn" bindtap="onEdit" data-id="{{item._id}}">✏️</view>
           <view class="icon-btn" bindtap="onDelete" data-id="{{item._id}}">🗑️</view>
         </view>
       </view>
