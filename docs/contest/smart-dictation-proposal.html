@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智听 Smart Dictation Helper - 产品创意方案</title>
+  <style>
+    :root{--primary:#4f46e5;--primary-dark:#3730a3;--bg:#f8fafc;--card:#fff;--text:#1f2937;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+    .container{max-width:800px;margin:0 auto;padding:32px 20px}
+    header{text-align:center;padding:48px 0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:16px;margin-bottom:40px}
+    header h1{font-size:36px;margin:0 0 12px}
+    header p{font-size:18px;margin:0;opacity:.9}
+    .card{background:var(--card);border-radius:16px;padding:28px;margin-bottom:24px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+    h2{font-size:24px;color:var(--primary);margin-top:0;border-left:4px solid var(--primary);padding-left:12px}
+    .tag{display:inline-block;background:#e0e7ff;color:var(--primary-dark);padding:4px 12px;border-radius:999px;font-size:14px;font-weight:600;margin-bottom:12px}
+    ul{padding-left:20px}
+    li{margin-bottom:10px}
+    .flow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px}
+    .step{flex:1;min-width:120px;background:#f1f5f9;border-radius:12px;padding:16px;text-align:center}
+    .step strong{display:block;color:var(--primary);font-size:18px;margin-bottom:6px}
+    .repo{display:inline-block;margin-top:8px;background:var(--primary);color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600}
+    footer{text-align:center;color:var(--muted);font-size:14px;margin-top:40px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>智听 Smart Dictation Helper</h1>
+      <p>AI 自动化听写小程序 · 让家长告别“人工报词机”</p>
+    </header>
+
+    <div class="card">
+      <span class="tag">学习工作赛道</span>
+      <h2>创意一句话</h2>
+      <p>用微信小程序 + 火山 OCR + 豆包大模型 + 标准 TTS，把家长从每天 20-30 分钟的报听写劳动中彻底解放，同时让孩子获得标准发音、稳定节奏的自动化听写训练。</p>
+    </div>
+
+    <div class="card">
+      <h2>核心痛点</h2>
+      <ul>
+        <li>家长精力被占用：每天必须人工报词，无法脱身。</li>
+        <li>发音不标准：家长英语发音不准，误导孩子形成错误记忆。</li>
+        <li>节奏难把控：报快报慢全靠感觉，影响听写效果。</li>
+        <li>批改整理繁琐：人工对答案、整理错题费时费力。</li>
+        <li>词库维护困难：课本单词要手动录入，工作量大。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>解决方案流程</h2>
+      <div class="flow">
+        <div class="step"><strong>1. 拍照</strong>课本/单词表</div>
+        <div class="step"><strong>2. OCR</strong>识别文字</div>
+        <div class="step"><strong>3. AI</strong>结构化清洗</div>
+        <div class="step"><strong>4. 随机抽题</strong>听写</div>
+        <div class="step"><strong>5. 标准TTS</strong>播报</div>
+        <div class="step"><strong>6. 自动批改</strong>错题本</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>六大核心能力</h2>
+      <ul>
+        <li><strong>拍照识字：</strong>火山引擎 OCR 识别课本照片，自动提取单词文本。</li>
+        <li><strong>AI 清洗：</strong>豆包大模型将杂乱 OCR 结果整理成「单词-释义-拼音」标准 JSON。</li>
+        <li><strong>随机听写：</strong>按单元/课次筛选，Min-Max 数量区间随机抽取，顺序打乱防作弊。</li>
+        <li><strong>语音播报：</strong>微信同声传译插件 / 大厂 TTS 提供标准发音与间隔控制。</li>
+        <li><strong>自动批改：</strong>提交后自动对比标准答案，红笔纠错并生成错题本。</li>
+        <li><strong>多端协作：</strong>班级码共享词库，老师布置全班统一听写任务。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>目标用户与场景</h2>
+      <p><strong>用户：</strong>小学生家长 + 小学生，扩展至语文教师。</p>
+      <p><strong>场景：</strong>每日家庭听写、周末单元复习、考前集中突击、班级统一作业。</p>
+    </div>
+
+    <div class="card">
+      <h2>项目仓库</h2>
+      <p>GitHub：<a class="repo" href="https://github.com/echo008/homework-buddy" target="_blank">echo008/homework-buddy</a></p>
+    </div>
+
+    <footer>本作品参与 TRAE AI 创造力大赛 · 学习工作赛道</footer>
+  </div>
+</body>
+</html>
