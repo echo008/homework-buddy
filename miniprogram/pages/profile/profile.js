@@ -1,5 +1,7 @@
 // pages/profile/profile.js - 我的/词库管理
 const { getUserLogs } = require('../../utils/cloudApi.js')
+const { PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
+const { toast } = require('../../utils/ui.js')
 
 // 时间格式化：ISO/Date → 友好显示（如 "2026-06-19 14:30"）
 function formatTime(input) {
@@ -51,7 +53,7 @@ Page({
       this.setData({ logs: formatted, stats, loading: false })
     } catch (err) {
       this.setData({ loading: false })
-      wx.showToast({ title: '记录加载失败', icon: 'none' })
+      toast('记录加载失败')
     }
   },
 
@@ -101,7 +103,7 @@ Page({
     if (!currentLog) return
     const questions = currentLog.questions || []
     if (questions.length === 0) {
-      wx.showToast({ title: '该记录没有保存题目', icon: 'none' })
+      toast('该记录没有保存题目')
       return
     }
     this.setData({ showLogDetail: false })
@@ -124,7 +126,7 @@ Page({
     if (!currentLog) return
     const wrongWords = currentLog.wrongWords || []
     if (wrongWords.length === 0) {
-      wx.showToast({ title: '本次没有错题', icon: 'none' })
+      toast('本次没有错题')
       return
     }
     // 历史记录中的错题字段为 word，需转换为 dictation 需要的 prompt
@@ -134,9 +136,9 @@ Page({
       unitId: '',
       audioUrl: w.audioUrl || '',
       prompt: w.word,
-      promptType: w.promptType || 'english',
+      promptType: w.promptType || PROMPT_TYPES.ENGLISH,
       answer: w.correctAnswer,
-      answerType: w.answerType || 'chinese'
+      answerType: w.answerType || ANSWER_TYPES.CHINESE
     }))
     this.setData({ showLogDetail: false })
     wx.navigateTo({

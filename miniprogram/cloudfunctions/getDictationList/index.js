@@ -7,6 +7,14 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
+const {
+  ALLOWED_SUBJECTS,
+  ALLOWED_MODES,
+  MODES,
+  SUBJECTS,
+  PROMPT_TYPES,
+  ANSWER_TYPES
+} = require('../common/constants.js')
 
 /**
  * Fisher-Yates 洗牌算法，打乱数组顺序（防作弊：避免学生背顺序）
@@ -29,8 +37,8 @@ function shuffle(arr) {
  * @returns {number}
  */
 function randomCount(min, max) {
-  const low = Math.max(1, min)
-  const high = Math.max(low, max)
+  const low = Math.max(1, Number(min) || 1)
+  const high = Math.max(low, Number(max) || low)
   return Math.floor(Math.random() * (high - low + 1)) + low
 }
 
@@ -39,9 +47,9 @@ exports.main = async (event) => {
     unitIds = [],      // 用户自己的单元ID列表
     presetUnitIds = [], // 预置单元ID列表（公开内容，无需权限校验）
     lessons = [],      // 所选课次列表（可选，空表示不限课次）
-    subject = 'english', // 学科：english / chinese
+    subject = SUBJECTS.ENGLISH, // 学科：english / chinese
     wordCountRange = { min: 10, max: 15 }, // 抽题数量上下限
-    mode = 'en2cn'     // 听写模式：en2cn / cn2en / pinyin2hanzi
+    mode = MODES.EN2CN     // 听写模式：en2cn / cn2en / pinyin2hanzi
   } = event
 
   const wxContext = cloud.getWXContext()
@@ -54,8 +62,19 @@ exports.main = async (event) => {
     if (!hasUserUnits && !hasPresetUnits) {
       return { code: 2, message: '请至少选择一个单元' }
     }
-    if (!['english', 'chinese'].includes(subject)) {
+    if (!ALLOWED_SUBJECTS.includes(subject)) {
       return { code: 2, message: '学科类型不正确' }
+    }
+    if (!ALLOWED_MODES.includes(mode)) {
+      return { code: 2, message: '听写模式不正确' }
+    }
+
+    // 校验抽题数量范围
+    const { min, max } = wordCountRange || {}
+    const minCount = Number(min) || 0
+    const maxCount = Number(max) || 0
+    if (minCount < 0 || maxCount < 0 || minCount > maxCount) {
+      return { code: 2, message: '听写数量范围不合法' }
     }
 
     // 校验用户单元是否在当前用户可访问范围内（自己创建的 + 所在班级共享的）
@@ -97,8 +116,7 @@ exports.main = async (event) => {
     }
 
     // 3. 确定抽题数量（Min-Max 随机，不超过题库总量）
-    const { min, max } = wordCountRange
-    const targetCount = Math.min(randomCount(min, max), wordList.length)
+    const targetCount = Math.min(randomCount(minCount, maxCount), wordList.length)
 
     // 4. 洗牌后截取目标数量
     const selectedWords = shuffle(wordList).slice(0, targetCount)
@@ -136,7 +154,7 @@ exports.main = async (event) => {
  */
 async function getAccessibleUnitIds(openid, subject) {
   const where = {}
-  if (['english', 'chinese'].includes(subject)) where.subject = subject
+  if (ALLOWED_SUBJECTS.includes(subject)) where.subject = subject
 
   // 自己创建的单元（分页）
   const myUnits = await paginateQuery(
@@ -204,40 +222,33 @@ function buildQuestion(word, mode, index) {
   }
 
   switch (mode) {
-    case 'en2cn':
-      // 纯英文 -> 默写中文
-      return {
-        ...base,
-        prompt: word.word,        // 播报/展示英文
-        promptType: 'english',
-        answer: word.meaning,     // 标准答案：中文
-        answerType: 'chinese'
-      }
-    case 'cn2en':
+    case MODES.CN2EN:
       // 纯中文 -> 默写英文
       return {
         ...base,
         prompt: word.meaning,
-        promptType: 'chinese',
+        promptType: PROMPT_TYPES.CHINESE,
         answer: word.word,
-        answerType: 'english'
+        answerType: ANSWER_TYPES.ENGLISH
       }
-    case 'pinyin2hanzi':
+    case MODES.PINYIN2HANZI:
       // 看拼音 -> 写汉字（语文专用）
       return {
         ...base,
         prompt: word.pinyin || word.word,
-        promptType: 'pinyin',
+        promptType: PROMPT_TYPES.PINYIN,
         answer: word.word,
-        answerType: 'chinese'
+        answerType: ANSWER_TYPES.CHINESE
       }
+    case MODES.EN2CN:
     default:
+      // 纯英文 -> 默写中文
       return {
         ...base,
-        prompt: word.word,
-        promptType: 'english',
-        answer: word.meaning,
-        answerType: 'chinese'
+        prompt: word.word,        // 播报/展示英文
+        promptType: PROMPT_TYPES.ENGLISH,
+        answer: word.meaning,     // 标准答案：中文
+        answerType: ANSWER_TYPES.CHINESE
       }
   }
 }

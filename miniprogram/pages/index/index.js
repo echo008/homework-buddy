@@ -1,13 +1,15 @@
 // pages/index/index.js - 首页：听写配置
 const { getDictationList, saveWord, getManagedUnits } = require('../../utils/cloudApi.js')
+const { SUBJECTS, MODES, SUBJECT_LABELS, MODE_LABELS } = require('../../utils/constants.js')
+const { toast, loading, hideLoading } = require('../../utils/ui.js')
 
 Page({
   data: {
     // 学科切换
-    subject: 'english',
+    subject: SUBJECTS.ENGLISH,
     subjectTabs: [
-      { key: 'english', label: '英语' },
-      { key: 'chinese', label: '语文' }
+      { key: SUBJECTS.ENGLISH, label: SUBJECT_LABELS[SUBJECTS.ENGLISH] },
+      { key: SUBJECTS.CHINESE, label: SUBJECT_LABELS[SUBJECTS.CHINESE] }
     ],
 
     // 单元列表
@@ -16,14 +18,14 @@ Page({
     selectedUnitMap: {}, // WXML 不支持 Array.includes，预计算选中映射
 
     // 听写模式
-    mode: 'en2cn',
+    mode: MODES.EN2CN,
     modeOptions: {
-      english: [
-        { value: 'en2cn', label: '英文→中文' },
-        { value: 'cn2en', label: '中文→英文' }
+      [SUBJECTS.ENGLISH]: [
+        { value: MODES.EN2CN, label: MODE_LABELS[MODES.EN2CN] },
+        { value: MODES.CN2EN, label: MODE_LABELS[MODES.CN2EN] }
       ],
-      chinese: [
-        { value: 'pinyin2hanzi', label: '看拼音→写汉字' }
+      [SUBJECTS.CHINESE]: [
+        { value: MODES.PINYIN2HANZI, label: MODE_LABELS[MODES.PINYIN2HANZI] }
       ]
     },
 
@@ -54,7 +56,8 @@ Page({
     this._unitReqSeq = 0
     // 支持外部跳转携带学科与模式（如班级详情页"去听写"、结果页"再测一组"）
     const subject = options && options.subject
-    if (subject && ['english', 'chinese'].includes(subject)) {
+    const validSubjects = Object.values(SUBJECTS)
+    if (subject && validSubjects.includes(subject)) {
       const modes = this.data.modeOptions[subject]
       const validModes = modes.map(m => m.value)
       const mode = options.mode && validModes.includes(options.mode) ? options.mode : modes[0].value
@@ -85,7 +88,7 @@ Page({
     const seq = ++this._unitReqSeq
     // 首次加载（units 为空）才显示 loading，避免从其他页返回时频繁闪烁
     const isFirstLoad = this.data.units.length === 0 && !this._loadedOnce
-    if (isFirstLoad) wx.showLoading({ title: '加载中...' })
+    if (isFirstLoad) loading('加载中...')
     try {
       const res = await getManagedUnits(subject)
       if (seq !== this._unitReqSeq) return
@@ -101,9 +104,9 @@ Page({
       this._loadedOnce = true
     } catch (err) {
       if (seq !== this._unitReqSeq) return
-      wx.showToast({ title: '单元加载失败', icon: 'none' })
+      toast('单元加载失败')
     } finally {
-      if (isFirstLoad && seq === this._unitReqSeq) wx.hideLoading()
+      if (isFirstLoad && seq === this._unitReqSeq) hideLoading()
     }
   },
 
@@ -179,12 +182,12 @@ Page({
     const { subject, selectedUnitIds, mode, wordCountRange, interval } = this.data
 
     if (selectedUnitIds.length === 0) {
-      wx.showToast({ title: '请至少选择一个单元', icon: 'none' })
+      toast('请至少选择一个单元')
       return
     }
 
     this.setData({ submitting: true })
-    wx.showLoading({ title: '生成听写...' })
+    loading('生成听写...')
 
     try {
       const res = await getDictationList({
@@ -195,12 +198,12 @@ Page({
       })
 
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '生成失败', icon: 'none' })
+        toast(res.message || '生成失败')
         return
       }
 
       if (!res.data || !res.data.words || res.data.words.length === 0) {
-        wx.showToast({ title: '未抽到单词', icon: 'none' })
+        toast('未抽到单词')
         return
       }
 
@@ -218,14 +221,14 @@ Page({
         },
         fail: (err) => {
           console.error('跳转听写页失败:', err)
-          wx.showToast({ title: '页面跳转失败，请重试', icon: 'none' })
+          toast('页面跳转失败，请重试')
         }
       })
     } catch (err) {
-      wx.showToast({ title: '生成失败，请重试', icon: 'none' })
+      toast('生成失败，请重试')
     } finally {
       this.setData({ submitting: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -233,7 +236,7 @@ Page({
   onScan() {
     const { subject, selectedUnitIds } = this.data
     if (selectedUnitIds.length === 0) {
-      wx.showToast({ title: '请先选择一个单元', icon: 'none' })
+      toast('请先选择一个单元')
       return
     }
     wx.navigateTo({
@@ -263,7 +266,7 @@ Page({
   onShowAddModal() {
     const { selectedUnitIds } = this.data
     if (selectedUnitIds.length === 0) {
-      wx.showToast({ title: '请先选择一个单元', icon: 'none' })
+      toast('请先选择一个单元')
       return
     }
     this.setData({
@@ -305,12 +308,12 @@ Page({
     const unitId = selectedUnitIds[0]
 
     if (!addForm.word.trim() || !addForm.meaning.trim()) {
-      wx.showToast({ title: '单词和释义不能为空', icon: 'none' })
+      toast('单词和释义不能为空')
       return
     }
 
     this.setData({ adding: true })
-    wx.showLoading({ title: '添加中...' })
+    loading('添加中...')
 
     try {
       const res = await saveWord({
@@ -325,18 +328,18 @@ Page({
       })
 
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '添加失败', icon: 'none' })
+        toast(res.message || '添加失败')
         return
       }
 
-      wx.showToast({ title: '添加成功', icon: 'success' })
+      toast('添加成功', 'success')
       this.onHideAddModal()
       this.loadUnits(subject)
     } catch (err) {
-      wx.showToast({ title: '添加失败', icon: 'none' })
+      toast('添加失败')
     } finally {
       this.setData({ adding: false })
-      wx.hideLoading()
+      hideLoading()
     }
   }
 })

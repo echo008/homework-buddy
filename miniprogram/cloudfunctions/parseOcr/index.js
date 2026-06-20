@@ -8,6 +8,7 @@ const { OpenAI } = require('openai')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
+const { ALLOWED_SUBJECTS, SUBJECTS } = require('../common/constants.js')
 
 // ========== 环境变量（在云函数控制台配置） ==========
 const ENV = {
@@ -24,13 +25,13 @@ const ENV = {
 }
 
 exports.main = async (event) => {
-  const { fileID, subject = 'english', unitId = '' } = event
+  const { fileID, subject = SUBJECTS.ENGLISH, unitId = '' } = event
 
   // 参数校验
   if (!fileID) {
     return { code: 1, message: '参数缺失：fileID 为必填项' }
   }
-  if (!['english', 'chinese'].includes(subject)) {
+  if (!ALLOWED_SUBJECTS.includes(subject)) {
     return { code: 1, message: 'subject 只能是 english 或 chinese' }
   }
   if (!unitId) {
@@ -209,7 +210,7 @@ async function callStructuringLLM(rawText, subject) {
 }
 
 function buildPrompt(rawText, subject) {
-  if (subject === 'english') {
+  if (subject === SUBJECTS.ENGLISH) {
     return `请从以下英语课本 OCR 文本中提取单词表，整理为 JSON 数组。每个元素包含字段：
 - word: 英文单词本身
 - meaning: 中文释义（多个释义用分号隔开）
@@ -264,7 +265,7 @@ function isValidWord(item, subject) {
   if (!item || typeof item !== 'object') return false
   if (!item.word || !item.word.trim()) return false
   if (!item.meaning || !item.meaning.trim()) return false
-  if (subject === 'english') {
+  if (subject === SUBJECTS.ENGLISH) {
     // 英文单词只保留基本字符与连字符
     item.word = item.word.trim().replace(/^[^a-zA-Z-]+|[^a-zA-Z-]+$/g, '')
   } else {
@@ -325,7 +326,7 @@ function buildWordDoc(item, subject, unitId, openid, now) {
     createdBy: openid
   }
 
-  if (subject === 'english') {
+  if (subject === SUBJECTS.ENGLISH) {
     return {
       ...base,
       pinyin: '',
@@ -375,7 +376,7 @@ async function syncUnitWordCount(unitId) {
 // ========== 演示数据 ==========
 function buildDemoWords(subject, unitId, openid) {
   const now = new Date().toISOString()
-  if (subject === 'english') {
+  if (subject === SUBJECTS.ENGLISH) {
     return [
       { word: 'apple', meaning: '苹果', partOfSpeech: 'n.', phonetic: '/ˈæpl/', unitId, source: 'ocr', createdBy: openid, createdAt: now },
       { word: 'banana', meaning: '香蕉', partOfSpeech: 'n.', phonetic: '/bəˈnɑːnə/', unitId, source: 'ocr', createdBy: openid, createdAt: now }

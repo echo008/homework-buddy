@@ -1,4 +1,5 @@
-// utils/constants.js - 项目通用常量与文案映射
+// cloudfunctions/common/constants.js - 云函数通用常量
+// 与 miniprogram/utils/constants.js 保持一致，避免前后端不一致
 
 const SUBJECTS = {
   CHINESE: 'chinese',
@@ -64,13 +65,10 @@ const CONTENT_TYPE_LABELS = {
   [CONTENT_TYPES.SENTENCE]: '句子'
 }
 
-/**
- * 根据学科返回默认听写模式
- * @param {string} subject
- */
-function getDefaultMode(subject) {
-  return subject === SUBJECTS.CHINESE ? MODES.PINYIN2HANZI : MODES.EN2CN
-}
+const ALLOWED_SUBJECTS = Object.values(SUBJECTS)
+const ALLOWED_MODES = Object.values(MODES)
+const ALLOWED_GRADE_LEVELS = Object.values(GRADE_LEVELS)
+const ALLOWED_CONTENT_TYPES = Object.values(CONTENT_TYPES)
 
 module.exports = {
   SUBJECTS,
@@ -83,5 +81,8 @@ module.exports = {
   MODE_LABELS,
   GRADE_LEVEL_LABELS,
   CONTENT_TYPE_LABELS,
-  getDefaultMode
+  ALLOWED_SUBJECTS,
+  ALLOWED_MODES,
+  ALLOWED_GRADE_LEVELS,
+  ALLOWED_CONTENT_TYPES
 }

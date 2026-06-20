@@ -1,5 +1,6 @@
 // utils/cloudApi.js - 云函数统一调用封装
 // 前端侧只做调度，所有业务逻辑与密钥均放在云函数
+const { SUBJECTS } = require('./constants.js')
 
 /**
  * 调用云函数
@@ -40,7 +41,7 @@ function callCloud(name, data = {}) {
 function parseOcrImage(fileID, options = {}) {
   return callCloud('parseOcr', {
     fileID,
-    subject: options.subject || 'english',
+    subject: options.subject || SUBJECTS.ENGLISH,
     unitId: options.unitId || ''
   })
 }

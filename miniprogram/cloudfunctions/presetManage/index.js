@@ -47,12 +47,17 @@
 
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
-
 const db = cloud.database()
-
-const ALLOWED_SUBJECTS = ['chinese', 'english']
-const ALLOWED_GRADE_LEVELS = ['primary', 'junior', 'senior', 'national']
-const ALLOWED_CONTENT_TYPES = ['poetry', 'word', 'phrase', 'sentence']
+const {
+  ALLOWED_SUBJECTS,
+  ALLOWED_GRADE_LEVELS,
+  ALLOWED_CONTENT_TYPES,
+  SUBJECTS,
+  GRADE_LEVELS,
+  CONTENT_TYPES,
+  GRADE_LEVEL_LABELS,
+  CONTENT_TYPE_LABELS
+} = require('../common/constants.js')
 
 const PAGE_SIZE = 100
 
@@ -85,7 +90,7 @@ exports.main = async (event) => {
         return await saveAudioUrl(event)
       case 'seed':
         // ⚠️ 仅用于首次部署时初始化示例数据；force=true 可清空并重新导入
-        return await seedPresetData(event.force)
+        return await seedPresetData(event.force, openid)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -98,10 +103,10 @@ exports.main = async (event) => {
 // 返回固定的筛选维度（学段/教材版本/内容类型）
 async function listFilters() {
   const gradeLevels = [
-    { value: 'primary', label: '小学' },
-    { value: 'junior', label: '初中' },
-    { value: 'senior', label: '高中' },
-    { value: 'national', label: '全国' }
+    { value: GRADE_LEVELS.PRIMARY, label: GRADE_LEVEL_LABELS[GRADE_LEVELS.PRIMARY] },
+    { value: GRADE_LEVELS.JUNIOR, label: GRADE_LEVEL_LABELS[GRADE_LEVELS.JUNIOR] },
+    { value: GRADE_LEVELS.SENIOR, label: GRADE_LEVEL_LABELS[GRADE_LEVELS.SENIOR] },
+    { value: GRADE_LEVELS.NATIONAL, label: GRADE_LEVEL_LABELS[GRADE_LEVELS.NATIONAL] }
   ]
 
   const versions = [
@@ -112,10 +117,10 @@ async function listFilters() {
   ]
 
   const contentTypes = [
-    { value: 'poetry', label: '古诗词', subject: 'chinese' },
-    { value: 'word', label: '单词', subject: 'english' },
-    { value: 'phrase', label: '短语', subject: 'english' },
-    { value: 'sentence', label: '句子', subject: 'english' }
+    { value: CONTENT_TYPES.POETRY, label: CONTENT_TYPE_LABELS[CONTENT_TYPES.POETRY], subject: SUBJECTS.CHINESE },
+    { value: CONTENT_TYPES.WORD, label: CONTENT_TYPE_LABELS[CONTENT_TYPES.WORD], subject: SUBJECTS.ENGLISH },
+    { value: CONTENT_TYPES.PHRASE, label: CONTENT_TYPE_LABELS[CONTENT_TYPES.PHRASE], subject: SUBJECTS.ENGLISH },
+    { value: CONTENT_TYPES.SENTENCE, label: CONTENT_TYPE_LABELS[CONTENT_TYPES.SENTENCE], subject: SUBJECTS.ENGLISH }
   ]
 
   return { code: 0, data: { gradeLevels, versions, contentTypes } }
@@ -350,8 +355,16 @@ async function paginateQuery(query, pageSize = 100) {
 }
 
 // 初始化示例预置数据（幂等：已有数据则跳过；force=true 会清空后重新导入）
-async function seedPresetData(force = false) {
+async function seedPresetData(force = false, openid = '') {
+  // 安全加固：force=true 仅允许配置的管理员 openid 执行，防止数据被恶意清空
+  const adminOpenid = process.env.PRESET_ADMIN_OPENID || ''
   if (force) {
+    if (!adminOpenid) {
+      return { code: 7, message: '未配置管理员，禁止强制覆盖数据' }
+    }
+    if (adminOpenid !== openid) {
+      return { code: 5, message: '无权强制覆盖预置数据' }
+    }
     await db.collection('presetTextbooks').where({}).remove()
     await db.collection('presetUnits').where({}).remove()
     await db.collection('presetWords').where({}).remove()

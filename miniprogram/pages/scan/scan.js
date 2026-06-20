@@ -1,9 +1,11 @@
 // pages/scan/scan.js - 拍照识字导入页
 const { parseOcrImage } = require('../../utils/cloudApi.js')
+const { SUBJECTS } = require('../../utils/constants.js')
+const { toast, modal } = require('../../utils/ui.js')
 
 Page({
   data: {
-    subject: 'english',
+    subject: SUBJECTS.ENGLISH,
     unitId: '',
     loading: false,
     status: '',
@@ -15,12 +17,12 @@ Page({
   onLoad(options) {
     const { subject, unitId } = options
     if (!unitId) {
-      wx.showToast({ title: '缺少单元信息', icon: 'none' })
+      toast('缺少单元信息')
       setTimeout(() => wx.navigateBack(), 1500)
       return
     }
     this.setData({
-      subject: subject || 'english',
+      subject: subject || SUBJECTS.ENGLISH,
       unitId
     })
   },
@@ -36,9 +38,7 @@ Page({
       const errMsg = err && err.errMsg ? err.errMsg : ''
       // 权限错误时才引导设置（兼容多种错误文案）
       if (/auth deny|authorize|permission denied/i.test(errMsg)) {
-        wx.showModal({
-          title: '需要权限',
-          content: '需要相机和相册权限才能拍照识字，请在设置中开启',
+        modal('需要权限', '需要相机和相册权限才能拍照识字，请在设置中开启', {
           confirmText: '去设置',
           success: (res) => {
             if (res.confirm) wx.openSetting()
@@ -99,7 +99,7 @@ Page({
       const parseRes = await parseOcrImage(uploadRes.fileID, { subject, unitId })
 
       if (parseRes.code !== 0) {
-        wx.showToast({ title: parseRes.message || '识别失败', icon: 'none' })
+        toast(parseRes.message || '识别失败')
         this.setData({ loading: false, status: parseRes.message || '识别失败' })
         return
       }
@@ -113,13 +113,10 @@ Page({
         demo: parseRes.data.demo || false
       })
 
-      wx.showToast({
-        title: parseRes.data.demo ? '演示数据，未写入数据库' : `成功导入 ${words.length} 个`,
-        icon: 'none'
-      })
+      toast(parseRes.data.demo ? '演示数据，未写入数据库' : `成功导入 ${words.length} 个`)
     } catch (err) {
       console.error('上传/识别失败:', err)
-      wx.showToast({ title: '上传或识别失败', icon: 'none' })
+      toast('上传或识别失败')
       this.setData({ loading: false, status: '上传或识别失败，请重试' })
     }
   },

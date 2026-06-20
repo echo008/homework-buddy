@@ -1,5 +1,7 @@
 // pages/result/result.js - 结果批改页
 const { saveUserLog } = require('../../utils/cloudApi.js')
+const { MODES, SUBJECTS, PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
+const { toast } = require('../../utils/ui.js')
 
 Page({
   data: {
@@ -11,8 +13,8 @@ Page({
     wrongWords: [],
     saved: false,
     unitIds: [],
-    mode: 'en2cn',
-    subject: 'english',
+    mode: MODES.EN2CN,
+    subject: SUBJECTS.ENGLISH,
     interval: 5,
     wordCountRange: { min: 10, max: 15 }
   },
@@ -33,8 +35,8 @@ Page({
         accuracy: data.accuracy || 0,
         wrongWords,
         unitIds: data.unitIds || [],
-        mode: data.mode || 'en2cn',
-        subject: data.subject || 'english',
+        mode: data.mode || MODES.EN2CN,
+        subject: data.subject || SUBJECTS.ENGLISH,
         interval: data.interval || 5,
         wordCountRange: data.wordCountRange || { min: data.total || 10, max: data.total || 15 }
       })
@@ -56,8 +58,8 @@ Page({
     try {
       const res = await saveUserLog({
         unitIds: data.unitIds || [],
-        subject: data.subject || 'english',
-        mode: data.mode || 'en2cn',
+        subject: data.subject || SUBJECTS.ENGLISH,
+        mode: data.mode || MODES.EN2CN,
         wordCountRange: {
           min: Number(wordCountRange.min) || 0,
           max: Number(wordCountRange.max) || 0
@@ -72,7 +74,7 @@ Page({
       })
       if (res.code !== 0) {
         console.error('保存听写记录失败:', res.message)
-        wx.showToast({ title: '成绩记录未保存，可继续查看', icon: 'none', duration: 2500 })
+        toast('成绩记录未保存，可继续查看')
         return
       }
       this.setData({ saved: true })
@@ -86,7 +88,7 @@ Page({
   // 重测错题：保留原始 mode / subject / interval，避免配置丢失
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
-      wx.showToast({ title: '没有错题，棒极了！', icon: 'none' })
+      toast('没有错题，棒极了！')
       return
     }
     const { mode, subject, unitIds, interval } = this.data
@@ -100,9 +102,9 @@ Page({
             unitId: '',
             audioUrl: w.audioUrl || '',
             prompt: w.word,
-            promptType: w.promptType || 'english',
+            promptType: w.promptType || PROMPT_TYPES.ENGLISH,
             answer: w.correctAnswer,
-            answerType: w.answerType || 'chinese'
+            answerType: w.answerType || ANSWER_TYPES.CHINESE
           })),
           total: this.data.wrongWords.length,
           unitIds: unitIds || [],

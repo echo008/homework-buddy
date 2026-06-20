@@ -38,8 +38,8 @@ Page({
     contentTypes: [],
 
     // 已选条件
-    selectedGradeLevel: 'primary',
-    selectedSubject: 'chinese',
+    selectedGradeLevel: GRADE_LEVELS.PRIMARY,
+    selectedSubject: SUBJECTS.CHINESE,
     selectedVersion: '',
     selectedContentType: '',
     selectedTextbook: null,
@@ -146,7 +146,7 @@ Page({
 
   onGradeChange(e) {
     const selectedGradeLevel = e.currentTarget.dataset.value
-    const availableSubjects = GRADE_LEVEL_SUBJECTS[selectedGradeLevel] || GRADE_LEVEL_SUBJECTS.national
+    const availableSubjects = GRADE_LEVEL_SUBJECTS[selectedGradeLevel] || GRADE_LEVEL_SUBJECTS[GRADE_LEVELS.NATIONAL]
     const selectedSubject = availableSubjects.includes(this.data.selectedSubject)
       ? this.data.selectedSubject
       : availableSubjects[0]

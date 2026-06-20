@@ -10,6 +10,8 @@ const {
   dismissClass,
   getManagedUnits
 } = require('../../utils/cloudApi.js')
+const { SUBJECTS, SUBJECT_LABELS } = require('../../utils/constants.js')
+const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
 Page({
   data: {
@@ -22,11 +24,11 @@ Page({
     creating: false,
     createForm: {
       name: '',
-      subject: 'english'
+      subject: SUBJECTS.ENGLISH
     },
     subjectTabs: [
-      { key: 'english', label: '英语' },
-      { key: 'chinese', label: '语文' }
+      { key: SUBJECTS.ENGLISH, label: SUBJECT_LABELS[SUBJECTS.ENGLISH] },
+      { key: SUBJECTS.CHINESE, label: SUBJECT_LABELS[SUBJECTS.CHINESE] }
     ],
 
     // 加入班级
@@ -60,9 +62,7 @@ Page({
       // 延迟弹窗，避免页面未渲染完成时弹窗打断用户
       setTimeout(() => {
         if (!this._isUnloaded) {
-          wx.showModal({
-            title: '加入班级',
-            content: `检测到班级码「${joinCode}」，是否立即加入？`,
+          modal('加入班级', `检测到班级码「${joinCode}」，是否立即加入？`, {
             confirmText: '立即加入',
             success: (res) => {
               if (res.confirm) {
@@ -109,11 +109,11 @@ Page({
       if (res.code === 0) {
         this.setData({ classes: res.data || [] })
       } else {
-        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+        toast(res.message || '加载失败')
       }
     } catch (err) {
       if (seq !== this._classReqSeq) return
-      wx.showToast({ title: '班级加载失败', icon: 'none' })
+      toast('班级加载失败')
     } finally {
       if (seq === this._classReqSeq) {
         this.setData({ loading: false })
@@ -125,7 +125,7 @@ Page({
   openCreateModal() {
     this.setData({
       showCreateModal: true,
-      createForm: { name: '', subject: 'english' }
+      createForm: { name: '', subject: SUBJECTS.ENGLISH }
     })
   },
 
@@ -146,27 +146,27 @@ Page({
     if (this.data.creating) return
     const { createForm } = this.data
     if (!createForm.name.trim()) {
-      wx.showToast({ title: '班级名称不能为空', icon: 'none' })
+      toast('班级名称不能为空')
       return
     }
 
     this.setData({ creating: true })
-    wx.showLoading({ title: '创建中...' })
+    loading('创建中...')
 
     try {
       const res = await createClass(createForm.name.trim(), createForm.subject)
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '创建失败', icon: 'none' })
+        toast(res.message || '创建失败')
         return
       }
-      wx.showToast({ title: '创建成功', icon: 'success' })
+      toast('创建成功', 'success')
       this.closeCreateModal()
       this.loadClasses()
     } catch (err) {
-      wx.showToast({ title: '创建失败', icon: 'none' })
+      toast('创建失败')
     } finally {
       this.setData({ creating: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -179,27 +179,27 @@ Page({
     if (this.data.joining) return
     const { joinCode } = this.data
     if (!joinCode.trim()) {
-      wx.showToast({ title: '请输入班级码', icon: 'none' })
+      toast('请输入班级码')
       return
     }
 
     this.setData({ joining: true })
-    wx.showLoading({ title: '加入中...' })
+    loading('加入中...')
 
     try {
       const res = await joinClass(joinCode.trim())
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '加入失败', icon: 'none' })
+        toast(res.message || '加入失败')
         return
       }
-      wx.showToast({ title: '加入成功', icon: 'success' })
+      toast('加入成功', 'success')
       this.setData({ joinCode: '' })
       this.loadClasses()
     } catch (err) {
-      wx.showToast({ title: '加入失败', icon: 'none' })
+      toast('加入失败')
     } finally {
       this.setData({ joining: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -230,13 +230,13 @@ Page({
         })
       } else {
         // 班级不存在或无权限时，清空当前班级并返回列表
-        wx.showToast({ title: res.message || '班级不存在', icon: 'none' })
+        toast(res.message || '班级不存在')
         this.setData({ currentClass: null })
         setTimeout(() => this.backToList(), 1500)
       }
     } catch (err) {
       if (seq !== this._detailReqSeq) return
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      toast('加载失败')
     } finally {
       if (seq === this._detailReqSeq) {
         this.setData({ detailLoading: false })
@@ -249,9 +249,9 @@ Page({
     if (!code) return
     try {
       await wx.setClipboardData({ data: code })
-      wx.showToast({ title: '班级码已复制', icon: 'success' })
+      toast('班级码已复制', 'success')
     } catch (err) {
-      wx.showToast({ title: '复制失败', icon: 'none' })
+      toast('复制失败')
     }
   },
 
@@ -260,28 +260,24 @@ Page({
     const { currentClass, leaving } = this.data
     if (!currentClass || leaving) return
 
-    const res = await wx.showModal({
-      title: '确认退出',
-      content: `退出班级「${currentClass.name}」后将无法查看共享词库，确定吗？`,
-      confirmColor: '#ef4444'
-    })
+    const res = await modal('确认退出', `退出班级「${currentClass.name}」后将无法查看共享词库，确定吗？`, { confirmColor: '#ef4444' })
     if (!res.confirm) return
 
     this.setData({ leaving: true })
-    wx.showLoading({ title: '退出中...' })
+    loading('退出中...')
     try {
       const result = await leaveClass(currentClass._id)
       if (result.code !== 0) {
-        wx.showToast({ title: result.message || '退出失败', icon: 'none' })
+        toast(result.message || '退出失败')
         return
       }
-      wx.showToast({ title: '已退出班级', icon: 'success' })
+      toast('已退出班级', 'success')
       this.backToList()
     } catch (err) {
-      wx.showToast({ title: '退出失败', icon: 'none' })
+      toast('退出失败')
     } finally {
       this.setData({ leaving: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -291,28 +287,24 @@ Page({
     const { currentClass, unsharing } = this.data
     if (!currentClass || unsharing) return
 
-    const res = await wx.showModal({
-      title: '确认取消共享',
-      content: '取消后班级成员将无法看到该单元，确定吗？',
-      confirmColor: '#ef4444'
-    })
+    const res = await modal('确认取消共享', '取消后班级成员将无法看到该单元，确定吗？', { confirmColor: '#ef4444' })
     if (!res.confirm) return
 
     this.setData({ unsharing: true })
-    wx.showLoading({ title: '操作中...' })
+    loading('操作中...')
     try {
       const result = await unshareUnitFromClass(currentClass._id, unitId)
       if (result.code !== 0) {
-        wx.showToast({ title: result.message || '操作失败', icon: 'none' })
+        toast(result.message || '操作失败')
         return
       }
-      wx.showToast({ title: '已取消共享', icon: 'success' })
+      toast('已取消共享', 'success')
       this.loadClassDetail(currentClass._id)
     } catch (err) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
+      toast('操作失败')
     } finally {
       this.setData({ unsharing: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -328,29 +320,24 @@ Page({
     const { currentClass, dismissing } = this.data
     if (!currentClass || dismissing) return
 
-    const res = await wx.showModal({
-      title: '确认解散班级',
-      content: `解散班级「${currentClass.name}」后，所有成员将无法再访问共享词库，且无法恢复，确定吗？`,
-      confirmText: '解散',
-      confirmColor: '#ef4444'
-    })
+    const res = await modal('确认解散班级', `解散班级「${currentClass.name}」后，所有成员将无法再访问共享词库，且无法恢复，确定吗？`, { confirmText: '解散', confirmColor: '#ef4444' })
     if (!res.confirm) return
 
     this.setData({ dismissing: true })
-    wx.showLoading({ title: '解散中...' })
+    loading('解散中...')
     try {
       const result = await dismissClass(currentClass._id)
       if (result.code !== 0) {
-        wx.showToast({ title: result.message || '解散失败', icon: 'none' })
+        toast(result.message || '解散失败')
         return
       }
-      wx.showToast({ title: '班级已解散', icon: 'success' })
+      toast('班级已解散', 'success')
       this.backToList()
     } catch (err) {
-      wx.showToast({ title: '解散失败', icon: 'none' })
+      toast('解散失败')
     } finally {
       this.setData({ dismissing: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -360,7 +347,7 @@ Page({
     if (!currentClass) return
 
     this.setData({ showShareModal: true, selectedShareUnitId: '', sharing: false })
-    wx.showLoading({ title: '加载单元...' })
+    loading('加载单元...')
 
     try {
       const res = await getManagedUnits(currentClass.subject)
@@ -378,15 +365,15 @@ Page({
         const myOwnUnits = (res.data || []).filter(u => u.createdBy === openid)
         this.setData({ myUnits: myOwnUnits })
         if (myOwnUnits.length === 0) {
-          wx.showToast({ title: '暂无可共享单元，请先创建', icon: 'none', duration: 2000 })
+          toast('暂无可共享单元，请先创建')
         }
       } else {
-        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+        toast(res.message || '加载失败')
       }
     } catch (err) {
-      wx.showToast({ title: '单元加载失败', icon: 'none' })
+      toast('单元加载失败')
     } finally {
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -403,27 +390,27 @@ Page({
     if (this.data.sharing) return
     const { currentClass, selectedShareUnitId } = this.data
     if (!selectedShareUnitId) {
-      wx.showToast({ title: '请选择一个单元', icon: 'none' })
+      toast('请选择一个单元')
       return
     }
 
     this.setData({ sharing: true })
-    wx.showLoading({ title: '共享中...' })
+    loading('共享中...')
 
     try {
       const res = await shareUnitToClass(currentClass._id, selectedShareUnitId)
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '共享失败', icon: 'none' })
+        toast(res.message || '加载失败')
         return
       }
-      wx.showToast({ title: '共享成功', icon: 'success' })
+      toast('共享成功', 'success')
       this.closeShareModal()
       this.loadClassDetail(currentClass._id)
     } catch (err) {
-      wx.showToast({ title: '共享失败', icon: 'none' })
+      toast('共享失败')
     } finally {
       this.setData({ sharing: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 

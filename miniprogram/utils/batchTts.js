@@ -3,6 +3,7 @@
 
 const { listPresetWordsNeedAudio, savePresetAudioUrl } = require('./cloudApi.js')
 const { synthesize, resolveLang } = require('./tts.js')
+const { SUBJECTS, CONTENT_TYPES, PROMPT_TYPES } = require('./constants.js')
 
 /**
  * 为指定预置单元批量生成音频
@@ -86,10 +87,10 @@ async function generateWordAudio(item) {
  * - 语文拼音字词：合成汉字本身（或拼音，视需求而定）
  */
 function resolveAudioText(item) {
-  if (item.subject === 'english') {
+  if (item.subject === SUBJECTS.ENGLISH) {
     return item.word
   }
-  if (item.contentType === 'poetry') {
+  if (item.contentType === CONTENT_TYPES.POETRY) {
     return item.word
   }
   // 语文看拼音写词语：默认朗读汉字，便于儿童识别；如需朗读拼音，可改为 item.pinyin
@@ -100,7 +101,7 @@ function resolveAudioText(item) {
  * 根据学科推断 TTS 语言
  */
 function resolveLangForBatch(item) {
-  return resolveLang(item.subject === 'english' ? 'english' : 'chinese', item.subject)
+  return resolveLang(item.subject === SUBJECTS.ENGLISH ? PROMPT_TYPES.ENGLISH : PROMPT_TYPES.CHINESE, item.subject)
 }
 
 module.exports = {

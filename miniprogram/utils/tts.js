@@ -1,5 +1,6 @@
 // utils/tts.js - 语音播报封装
 // 优先使用微信同声传译插件（WechatSI）进行 TTS；未配置插件时给出友好降级
+const { PROMPT_TYPES, SUBJECTS } = require('./constants.js')
 
 let plugin = null
 try {
@@ -144,7 +145,7 @@ function fallbackSpeak(content, lang, callbacks) {
  * @param {string} subject english | chinese
  */
 function resolveLang(promptType, subject) {
-  if (promptType === 'english' || (subject === 'english' && promptType !== 'chinese')) {
+  if (promptType === PROMPT_TYPES.ENGLISH || (subject === SUBJECTS.ENGLISH && promptType !== PROMPT_TYPES.CHINESE)) {
     return 'en_US'
   }
   return 'zh_CN'

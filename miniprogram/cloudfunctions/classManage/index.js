@@ -14,7 +14,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
-const ALLOWED_SUBJECTS = ['english', 'chinese']
+const { ALLOWED_SUBJECTS } = require('../common/constants.js')
 const MAX_MEMBERS = 200
 
 exports.main = async (event) => {

@@ -9,9 +9,7 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-
-const ALLOWED_SUBJECTS = ['english', 'chinese']
-const ALLOWED_MODES = ['en2cn', 'cn2en', 'pinyin2hanzi']
+const { ALLOWED_SUBJECTS, ALLOWED_MODES, SUBJECTS, MODES } = require('../common/constants.js')
 
 exports.main = async (event) => {
   const { action } = event
@@ -40,8 +38,8 @@ exports.main = async (event) => {
 async function saveLog(log = {}, openid) {
   const {
     unitIds = [],
-    subject = 'english',
-    mode = 'en2cn',
+    subject = SUBJECTS.ENGLISH,
+    mode = MODES.EN2CN,
     wordCountRange = {},
     totalWords = 0,
     correctCount = 0,

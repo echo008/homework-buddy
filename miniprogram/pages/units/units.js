@@ -1,12 +1,14 @@
 // pages/units/units.js - 单元管理页
 const { getManagedUnits, saveUnit, deleteUnit } = require('../../utils/cloudApi.js')
+const { SUBJECTS, SUBJECT_LABELS } = require('../../utils/constants.js')
+const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
 Page({
   data: {
-    subject: 'english',
+    subject: SUBJECTS.ENGLISH,
     subjectTabs: [
-      { key: 'english', label: '英语' },
-      { key: 'chinese', label: '语文' }
+      { key: SUBJECTS.ENGLISH, label: SUBJECT_LABELS[SUBJECTS.ENGLISH] },
+      { key: SUBJECTS.CHINESE, label: SUBJECT_LABELS[SUBJECTS.CHINESE] }
     ],
     units: [],
     loading: false,
@@ -65,11 +67,11 @@ Page({
         const units = (res.data || []).filter(u => u.createdBy === openid)
         this.setData({ units })
       } else {
-        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+        toast(res.message || '加载失败')
       }
     } catch (err) {
       if (seq !== this._unitReqSeq) return
-      wx.showToast({ title: '单元加载失败', icon: 'none' })
+      toast('单元加载失败')
     } finally {
       if (seq === this._unitReqSeq) {
         this.setData({ loading: false })
@@ -97,7 +99,7 @@ Page({
     const unitId = e.currentTarget.dataset.id
     const unit = this.data.units.find(u => u._id === unitId)
     if (!unit) {
-      wx.showToast({ title: '单元信息丢失，请刷新', icon: 'none' })
+      toast('单元信息丢失，请刷新')
       return
     }
     this.setData({
@@ -137,12 +139,12 @@ Page({
     if (this.data.submitting) return
     const { form, subject, editing } = this.data
     if (!form.name || !form.name.trim()) {
-      wx.showToast({ title: '单元名称不能为空', icon: 'none' })
+      toast('单元名称不能为空')
       return
     }
 
     this.setData({ submitting: true })
-    wx.showLoading({ title: editing ? '保存中...' : '创建中...' })
+    loading(editing ? '保存中...' : '创建中...')
 
     try {
       const unit = {
@@ -156,45 +158,41 @@ Page({
       }
       const res = await saveUnit(unit)
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '保存失败', icon: 'none' })
+        toast(res.message || '保存失败')
         return
       }
-      wx.showToast({ title: editing ? '保存成功' : '创建成功', icon: 'success' })
+      toast(editing ? '保存成功' : '创建成功', 'success')
       this.onHideModal()
       this.loadUnits()
     } catch (err) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
+      toast('操作失败')
     } finally {
       this.setData({ submitting: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
   async onDelete(e) {
     if (this.data.deleting) return
     const { id, name } = e.currentTarget.dataset
-    const res = await wx.showModal({
-      title: '确认删除',
-      content: `删除单元「${name}」将同时删除其下所有单词，确定吗？`,
-      confirmColor: '#ef4444'
-    })
+    const res = await modal('确认删除', `删除单元「${name}」将同时删除其下所有单词，确定吗？`, { confirmColor: '#ef4444' })
     if (!res.confirm) return
 
     this.setData({ deleting: true })
-    wx.showLoading({ title: '删除中...' })
+    loading('删除中...')
     try {
       const result = await deleteUnit(id)
       if (result.code !== 0) {
-        wx.showToast({ title: result.message || '删除失败', icon: 'none' })
+        toast(result.message || '删除失败')
         return
       }
-      wx.showToast({ title: '删除成功', icon: 'success' })
+      toast('删除成功', 'success')
       this.loadUnits()
     } catch (err) {
-      wx.showToast({ title: '删除失败', icon: 'none' })
+      toast('删除失败')
     } finally {
       this.setData({ deleting: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 

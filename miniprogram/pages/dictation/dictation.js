@@ -1,13 +1,14 @@
 // pages/dictation/dictation.js - 听写进行页（核心）
 const { speak, stop: stopTTS, resolveLang } = require('../../utils/tts.js')
+const { MODES, SUBJECTS, PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
 
 Page({
   data: {
     questions: [],
     currentIndex: 0,
-    mode: 'en2cn',
+    mode: MODES.EN2CN,
     interval: 5,
-    subject: 'english',
+    subject: SUBJECTS.ENGLISH,
     userInput: '',
     answers: [],
     total: 0,
@@ -34,9 +35,9 @@ Page({
 
     const { mode, interval, subject, min, max } = options
     this.setData({
-      mode: mode || 'en2cn',
+      mode: mode || MODES.EN2CN,
       interval: Number(interval) || 5,
-      subject: subject || 'english',
+      subject: subject || SUBJECTS.ENGLISH,
       wordCountRange: {
         min: Number(min) || 5,
         max: Number(max) || 10
@@ -199,7 +200,7 @@ Page({
         this.setData({ isPlaying: false })
         this.playTTS(current)
       }
-    } else if (current.promptType === 'pinyin') {
+    } else if (current.promptType === PROMPT_TYPES.PINYIN) {
       // 拼音模式：TTS 无法准确读出带声调拼音，仅显示文字，不播报
       this.setData({ isPlaying: false })
     } else {
@@ -385,9 +386,9 @@ function checkAnswer(userInput, correctAnswer, answerType) {
 function normalizeAnswer(value, answerType) {
   if (!value) return ''
   let normalized = String(value).trim()
-  if (answerType === 'english') {
+  if (answerType === ANSWER_TYPES.ENGLISH) {
     normalized = normalized.toLowerCase().replace(/\s+/g, '')
-  } else if (answerType === 'chinese' || answerType === 'pinyin') {
+  } else if (answerType === ANSWER_TYPES.CHINESE || answerType === ANSWER_TYPES.PINYIN) {
     normalized = normalized.replace(/\s+/g, '')
   }
   return normalized

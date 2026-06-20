@@ -1,12 +1,14 @@
 // pages/words/words.js - 单词管理页（支持自定义录音）
 const { getWordsByUnit, saveWord, deleteWord } = require('../../utils/cloudApi.js')
 const audio = require('../../utils/audio.js')
+const { SUBJECTS } = require('../../utils/constants.js')
+const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
 Page({
   data: {
     unitId: '',
     unitName: '',
-    subject: 'english',
+    subject: SUBJECTS.ENGLISH,
     words: [],
     loading: false,
 
@@ -30,9 +32,9 @@ Page({
   },
 
   onLoad(options) {
-    const { unitId, unitName = '单元', subject = 'english' } = options
+    const { unitId, unitName = '单元', subject = SUBJECTS.ENGLISH } = options
     if (!unitId) {
-      wx.showToast({ title: '缺少单元信息', icon: 'none' })
+      toast('缺少单元信息')
       wx.navigateBack()
       return
     }
@@ -66,10 +68,10 @@ Page({
       if (res.code === 0) {
         this.setData({ words: res.data || [] })
       } else {
-        wx.showToast({ title: res.message || '加载失败', icon: 'none' })
+        toast(res.message || '加载失败')
       }
     } catch (err) {
-      wx.showToast({ title: '单词加载失败', icon: 'none' })
+      toast('单词加载失败')
     } finally {
       this.setData({ loading: false })
     }
@@ -99,7 +101,7 @@ Page({
     const itemId = e.currentTarget.dataset.id
     const item = this.data.words.find(w => w._id === itemId)
     if (!item) {
-      wx.showToast({ title: '单词信息丢失，请刷新', icon: 'none' })
+      toast('单词信息丢失，请刷新')
       return
     }
     this.setData({
@@ -142,12 +144,12 @@ Page({
     if (this.data.submitting) return
     const { form, unitId, subject, editing } = this.data
     if (!form.word.trim() || !form.meaning.trim()) {
-      wx.showToast({ title: '单词和释义不能为空', icon: 'none' })
+      toast('单词和释义不能为空')
       return
     }
 
     this.setData({ submitting: true })
-    wx.showLoading({ title: editing ? '保存中...' : '添加中...' })
+    loading(editing ? '保存中...' : '添加中...')
 
     try {
       const word = {
@@ -164,45 +166,41 @@ Page({
       }
       const res = await saveWord(word)
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '保存失败', icon: 'none' })
+        toast(res.message || '保存失败')
         return
       }
-      wx.showToast({ title: editing ? '保存成功' : '添加成功', icon: 'success' })
+      toast(editing ? '保存成功' : '添加成功', 'success')
       this.onHideModal()
       this.loadWords()
     } catch (err) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
+      toast('操作失败')
     } finally {
       this.setData({ submitting: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
   async onDelete(e) {
     if (this.data.deleting) return
     const id = e.currentTarget.dataset.id
-    const res = await wx.showModal({
-      title: '确认删除',
-      content: '删除后无法恢复，确定吗？',
-      confirmColor: '#ef4444'
-    })
+    const res = await modal('确认删除', '删除后无法恢复，确定吗？', { confirmColor: '#ef4444' })
     if (!res.confirm) return
 
     this.setData({ deleting: true })
-    wx.showLoading({ title: '删除中...' })
+    loading('删除中...')
     try {
       const result = await deleteWord(id)
       if (result.code !== 0) {
-        wx.showToast({ title: result.message || '删除失败', icon: 'none' })
+        toast(result.message || '删除失败')
         return
       }
-      wx.showToast({ title: '删除成功', icon: 'success' })
+      toast('删除成功', 'success')
       this.loadWords()
     } catch (err) {
-      wx.showToast({ title: '删除失败', icon: 'none' })
+      toast('删除失败')
     } finally {
       this.setData({ deleting: false })
-      wx.hideLoading()
+      hideLoading()
     }
   },
 
@@ -216,9 +214,7 @@ Page({
         const isAuthError = /authorize|auth|permission|denied/i.test(errMsg)
         if (isAuthError) {
           // 权限被拒时引导用户去设置页开启
-          wx.showModal({
-            title: '需要录音权限',
-            content: '录音功能需要授权才能使用，请在设置中开启录音权限。',
+          modal('需要录音权限', '录音功能需要授权才能使用，请在设置中开启录音权限。', {
             confirmText: '去设置',
             success(res) {
               if (res.confirm) {
@@ -227,7 +223,7 @@ Page({
             }
           })
         } else {
-          wx.showToast({ title: '录音启动失败，请重试', icon: 'none' })
+          toast('录音启动失败，请重试')
           console.error('录音启动失败:', err)
         }
       }
@@ -241,10 +237,10 @@ Page({
           recordState: 'idle',
           recordText: '点击录音'
         })
-        wx.showToast({ title: '录音已保存', icon: 'success' })
+        toast('录音已保存', 'success')
       } catch (err) {
         console.error('录音上传失败:', err)
-        wx.showToast({ title: '录音上传失败', icon: 'none' })
+        toast('录音上传失败')
         this.setData({ recordState: 'idle', recordText: '点击录音' })
       }
     }

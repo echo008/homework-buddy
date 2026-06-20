@@ -12,8 +12,7 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-
-const ALLOWED_SUBJECTS = ['english', 'chinese']
+const { ALLOWED_SUBJECTS, SUBJECTS } = require('../common/constants.js')
 
 exports.main = async (event) => {
   const { action } = event
@@ -44,7 +43,7 @@ async function createWord(word = {}, openid) {
     word: text,
     meaning,
     unitId,
-    subject = 'english',
+    subject = SUBJECTS.ENGLISH,
     pinyin = '',
     lesson = 1,
     partOfSpeech = '',
@@ -68,6 +67,10 @@ async function createWord(word = {}, openid) {
   }
   if (unit.createdBy !== openid) {
     return { code: 5, message: '无权向他人的单元添加单词' }
+  }
+  // 学科一致性校验：单词学科需与单元学科一致
+  if (unit.subject && unit.subject !== subject) {
+    return { code: 2, message: '单词学科与单元学科不一致' }
   }
 
   const { total } = await db.collection('words').where({ word: text.trim(), unitId }).count()

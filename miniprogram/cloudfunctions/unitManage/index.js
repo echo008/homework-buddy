@@ -11,8 +11,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
+const { ALLOWED_SUBJECTS } = require('../common/constants.js')
 
-const ALLOWED_SUBJECTS = ['english', 'chinese']
+const MAX_NAME_LENGTH = 100
 
 exports.main = async (event) => {
   const { action } = event
@@ -43,6 +44,9 @@ async function createUnit(unit = {}, openid) {
 
   if (!name || !name.trim()) {
     return { code: 2, message: '单元名称不能为空' }
+  }
+  if (name.trim().length > MAX_NAME_LENGTH) {
+    return { code: 2, message: `单元名称不能超过 ${MAX_NAME_LENGTH} 个字符` }
   }
   if (!ALLOWED_SUBJECTS.includes(subject)) {
     return { code: 2, message: '学科类型不正确' }
@@ -88,6 +92,13 @@ async function updateUnit(unit = {}, openid) {
       updateData[field] = field === 'order' ? Number(unit[field]) || 0 : String(unit[field]).trim()
     }
   })
+
+  if (updateData.name !== undefined && updateData.name.length > MAX_NAME_LENGTH) {
+    return { code: 2, message: `单元名称不能超过 ${MAX_NAME_LENGTH} 个字符` }
+  }
+  if (updateData.subject !== undefined && !ALLOWED_SUBJECTS.includes(updateData.subject)) {
+    return { code: 2, message: '学科类型不正确' }
+  }
 
   if (Object.keys(updateData).length === 0) {
     return { code: 2, message: '没有要更新的字段' }
