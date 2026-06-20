@@ -106,7 +106,7 @@ Page({
     }
     this.setData({ showLogDetail: false })
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${currentLog.mode}&subject=${currentLog.subject}&interval=5`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5`,
       success: (res) => {
         res.eventChannel.emit('dictationData', {
           questions,
@@ -127,13 +127,24 @@ Page({
       wx.showToast({ title: '本次没有错题', icon: 'none' })
       return
     }
+    // 历史记录中的错题字段为 word，需转换为 dictation 需要的 prompt
+    const questions = wrongWords.map((w, i) => ({
+      index: i + 1,
+      wordId: w.wordId,
+      unitId: '',
+      audioUrl: w.audioUrl || '',
+      prompt: w.word,
+      promptType: w.promptType || 'english',
+      answer: w.correctAnswer,
+      answerType: w.answerType || 'chinese'
+    }))
     this.setData({ showLogDetail: false })
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${currentLog.mode}&subject=${currentLog.subject}&interval=5`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5`,
       success: (res) => {
         res.eventChannel.emit('dictationData', {
-          questions: wrongWords,
-          total: wrongWords.length,
+          questions,
+          total: questions.length,
           unitIds: [],
           source: 'log'
         })

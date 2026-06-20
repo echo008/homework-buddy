@@ -52,7 +52,18 @@ Page({
       const res = await getManagedUnits(this.data.subject)
       if (seq !== this._unitReqSeq) return
       if (res.code === 0) {
-        this.setData({ units: res.data || [] })
+        // 单元管理页只应展示当前用户自己创建的单元，过滤掉班级共享单元
+        const app = getApp()
+        let openid = app.globalData.openid
+        if (!openid) {
+          try {
+            openid = await app.ensureOpenid()
+          } catch (err) {
+            console.error('获取 openid 失败:', err)
+          }
+        }
+        const units = (res.data || []).filter(u => u.createdBy === openid)
+        this.setData({ units })
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' })
       }
@@ -190,7 +201,7 @@ Page({
   goWords(e) {
     const { id, name, subject } = e.currentTarget.dataset
     wx.navigateTo({
-      url: `/pages/words/words?unitId=${id}&unitName=${encodeURIComponent(name)}&subject=${subject}`
+      url: `/pages/words/words?unitId=${encodeURIComponent(id)}&unitName=${encodeURIComponent(name)}&subject=${encodeURIComponent(subject)}`
     })
   }
 })

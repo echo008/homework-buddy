@@ -130,6 +130,6 @@ Page({
 
   onGoHome() {
     const { subject } = this.data
-    wx.reLaunch({ url: `/pages/index/index?subject=${subject}` })
+    wx.reLaunch({ url: `/pages/index/index?subject=${encodeURIComponent(subject)}` })
   }
 })

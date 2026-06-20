@@ -320,7 +320,7 @@ Page({
   goDictation() {
     const { currentClass } = this.data
     if (!currentClass) return
-    wx.reLaunch({ url: `/pages/index/index?subject=${currentClass.subject}` })
+    wx.reLaunch({ url: `/pages/index/index?subject=${encodeURIComponent(currentClass.subject)}` })
   },
 
   // 解散班级（仅创建者）

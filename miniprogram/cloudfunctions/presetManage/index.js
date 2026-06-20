@@ -49,7 +49,6 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const _ = db.command
 
 const ALLOWED_SUBJECTS = ['chinese', 'english']
 const ALLOWED_GRADE_LEVELS = ['primary', 'junior', 'senior', 'national']
@@ -234,6 +233,10 @@ async function importPresetUnit({ presetUnitId }, openid) {
         lesson: pw.lesson || 1,
         audioUrl: '',
         order: pw.order || 0,
+        difficulty: pw.difficulty || 3,
+        examples: pw.examples || [],
+        source: 'preset',
+        createdBy: openid,
         createdAt: now,
         updatedAt: now
       }

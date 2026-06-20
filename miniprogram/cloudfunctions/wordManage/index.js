@@ -29,7 +29,7 @@ exports.main = async (event) => {
       case 'delete':
         return await deleteWord(event.wordId, openid)
       case 'list':
-        return await listWords(event.unitId)
+        return await listWords(event.unitId, openid)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -178,8 +178,15 @@ async function deleteWord(wordId, openid) {
   return { code: 0, message: '删除成功' }
 }
 
-async function listWords(unitId) {
+async function listWords(unitId, openid) {
   if (!unitId) return { code: 2, message: '缺少单元 ID' }
+  if (!openid) return { code: 5, message: '用户未登录' }
+
+  // 权限校验：仅单元创建者或班级共享成员可查看单词列表
+  const accessible = await isUnitAccessible(unitId, openid)
+  if (!accessible) {
+    return { code: 5, message: '无权查看该单元的单词' }
+  }
 
   // 分页查询，避免单次 get 默认 100 条限制导致数据丢失
   const PAGE_SIZE = 100
@@ -199,6 +206,32 @@ async function listWords(unitId) {
   }
 
   return { code: 0, data: allData }
+}
+
+/**
+ * 判断单元是否对当前用户可见（自己创建或所在班级共享）
+ * @param {string} unitId
+ * @param {string} openid
+ * @returns {Promise<boolean>}
+ */
+async function isUnitAccessible(unitId, openid) {
+  try {
+    const unitRes = await db.collection('units').doc(unitId).get()
+    if (unitRes.data && unitRes.data.createdBy === openid) return true
+
+    const { data: classes } = await db.collection('classes')
+      .where({
+        sharedUnitIds: unitId,
+        members: openid
+      })
+      .limit(1)
+      .field({ _id: true })
+      .get()
+    return classes.length > 0
+  } catch (err) {
+    console.error('校验单元访问权限失败:', err)
+    return false
+  }
 }
 
 async function syncUnitWordCount(unitId) {

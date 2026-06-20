@@ -67,11 +67,17 @@ exports.main = async (event) => {
     const dataUri = `data:${mimeType};base64,${imageBase64}`
 
     // 演示模式：未配置密钥直接返回样例，方便开发验证
-    if (ENV.DEMO_MODE || (!ENV.VOLC_OCR_API_KEY && !ENV.DOUBAO_API_KEY)) {
+    const missingKeys = []
+    if (!ENV.VOLC_OCR_API_KEY) missingKeys.push('VOLC_OCR_API_KEY')
+    if (!ENV.DOUBAO_API_KEY) missingKeys.push('DOUBAO_API_KEY')
+    if (!ENV.DOUBAO_MODEL) missingKeys.push('DOUBAO_MODEL')
+    if (ENV.DEMO_MODE || missingKeys.length > 0) {
       const demoWords = buildDemoWords(subject, unitId, openid)
       return {
         code: 0,
-        message: '演示模式：已返回示例单词（未写入数据库）',
+        message: missingKeys.length > 0
+          ? `演示模式：缺少环境变量 ${missingKeys.join(', ')}，已返回示例单词（未写入数据库）`
+          : '演示模式：已返回示例单词（未写入数据库）',
         data: {
           words: demoWords,
           count: demoWords.length,
@@ -260,7 +266,7 @@ function isValidWord(item, subject) {
   if (!item.meaning || !item.meaning.trim()) return false
   if (subject === 'english') {
     // 英文单词只保留基本字符与连字符
-    item.word = item.word.trim().replace(/^[^a-zA-Z\-]+|[^a-zA-Z\-]+$/g, '')
+    item.word = item.word.trim().replace(/^[^a-zA-Z-]+|[^a-zA-Z-]+$/g, '')
   } else {
     item.word = item.word.trim().replace(/[\s\d，。！？、：；"'（）]+/g, '')
   }

@@ -5,10 +5,11 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "echo '未配置 ESLint，跳过'",
+    "lint": "eslint miniprogram/cloudfunctions/**/*.js miniprogram/pages/**/*.js miniprogram/utils/**/*.js miniprogram/app.js",
     "typecheck": "echo '小程序项目未配置 TypeScript，跳过'"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
     "jest": "^29.7.0"
   },
   "engines": {

@@ -70,6 +70,7 @@
         <view
           wx:for="{{contentTypes}}"
           wx:key="value"
+          wx:if="{{!item.subject || item.subject === selectedSubject}}"
           class="filter-chip {{selectedContentType === item.value ? 'chip-active' : ''}}"
           data-value="{{item.value}}"
           bindtap="onContentTypeChange"

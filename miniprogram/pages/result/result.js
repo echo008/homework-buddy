@@ -91,7 +91,7 @@ Page({
     }
     const { mode, subject, unitIds, interval } = this.data
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${mode}&subject=${subject}&interval=${interval}`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(mode)}&subject=${encodeURIComponent(subject)}&interval=${interval}`,
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
           questions: this.data.wrongWords.map((w, i) => ({
@@ -120,7 +120,7 @@ Page({
   // 再测一组：同配置重新抽题，携带学科和模式减少重复选择
   onRetryAll() {
     const { subject, mode } = this.data
-    wx.reLaunch({ url: `/pages/index/index?subject=${subject}&mode=${mode}` })
+    wx.reLaunch({ url: `/pages/index/index?subject=${encodeURIComponent(subject)}&mode=${encodeURIComponent(mode)}` })
   },
 
   onBackHome() {

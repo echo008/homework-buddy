@@ -206,7 +206,7 @@ Page({
 
       // 跳转听写页，传递题目与配置
       wx.navigateTo({
-        url: `/pages/dictation/dictation?mode=${mode}&interval=${interval}&subject=${subject}&min=${wordCountRange.min}&max=${wordCountRange.max}`,
+        url: `/pages/dictation/dictation?mode=${encodeURIComponent(mode)}&interval=${interval}&subject=${encodeURIComponent(subject)}&min=${wordCountRange.min}&max=${wordCountRange.max}`,
         success: (nav) => {
           // 通过事件通道传递大数据，避免 URL 过长
           nav.eventChannel.emit('dictationData', {
@@ -237,7 +237,7 @@ Page({
       return
     }
     wx.navigateTo({
-      url: `/pages/scan/scan?subject=${subject}&unitId=${selectedUnitIds[0]}`
+      url: `/pages/scan/scan?subject=${encodeURIComponent(subject)}&unitId=${encodeURIComponent(selectedUnitIds[0])}`
     })
   },
 
@@ -261,7 +261,7 @@ Page({
 
   // ========== 手动加词 ==========
   onShowAddModal() {
-    const { selectedUnitIds, subject } = this.data
+    const { selectedUnitIds } = this.data
     if (selectedUnitIds.length === 0) {
       wx.showToast({ title: '请先选择一个单元', icon: 'none' })
       return

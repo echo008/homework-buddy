@@ -137,13 +137,27 @@ Page({
     const selectedSubject = availableSubjects.includes(this.data.selectedSubject)
       ? this.data.selectedSubject
       : availableSubjects[0]
-    this.setData({ selectedGradeLevel, selectedSubject }, () => {
+    const validTypes = (this.data.contentTypes || [])
+      .filter(t => !t.subject || t.subject === selectedSubject)
+      .map(t => t.value)
+    const selectedContentType = validTypes.includes(this.data.selectedContentType)
+      ? this.data.selectedContentType
+      : ''
+    this.setData({ selectedGradeLevel, selectedSubject, selectedContentType }, () => {
       this.loadTextbooks()
     })
   },
 
   onSubjectChange(e) {
-    this.setData({ selectedSubject: e.currentTarget.dataset.value }, () => {
+    const selectedSubject = e.currentTarget.dataset.value
+    // 切换学科后，若当前内容类型不适用则清空
+    const validTypes = (this.data.contentTypes || [])
+      .filter(t => !t.subject || t.subject === selectedSubject)
+      .map(t => t.value)
+    const selectedContentType = validTypes.includes(this.data.selectedContentType)
+      ? this.data.selectedContentType
+      : ''
+    this.setData({ selectedSubject, selectedContentType }, () => {
       this.loadTextbooks()
     })
   },
@@ -250,9 +264,12 @@ Page({
     wx.showLoading({ title: '准备题目...' })
 
     try {
+      // 根据学科确定默认听写模式：语文默认看拼音写汉字，英语默认英→中
+      const mode = selectedSubject === 'chinese' ? 'pinyin2hanzi' : 'en2cn'
       const res = await getDictationList({
         presetUnitIds: selectedUnitIds,
         subject: selectedSubject,
+        mode,
         wordCountRange: { min: 5, max: 30 }
       })
       wx.hideLoading()
@@ -272,9 +289,10 @@ Page({
 
       // 记录教材信息用于结果页
       const textbookName = selectedTextbook ? selectedTextbook.name : ''
+      const finalMode = (res.data && res.data.mode) || mode
 
       wx.navigateTo({
-        url: `/pages/dictation/dictation?mode=${res.data.mode}&subject=${selectedSubject}&interval=5`,
+        url: `/pages/dictation/dictation?mode=${encodeURIComponent(finalMode)}&subject=${encodeURIComponent(selectedSubject)}&interval=5`,
         success: (navRes) => {
           navRes.eventChannel.emit('dictationData', {
             questions,
@@ -297,6 +315,6 @@ Page({
   },
 
   goCustomInput() {
-    wx.reLaunch({ url: `/pages/index/index?subject=${this.data.selectedSubject}` })
+    wx.reLaunch({ url: `/pages/index/index?subject=${encodeURIComponent(this.data.selectedSubject)}` })
   }
 })

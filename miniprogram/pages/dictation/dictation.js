@@ -19,7 +19,8 @@ Page({
     showExitConfirm: false,
     ttsUnavailable: false,
     submitting: false, // 防快速点击
-    inputFocus: true   // 输入框聚焦控制，切题时重新聚焦
+    inputFocus: true,  // 输入框聚焦控制，切题时重新聚焦
+    finished: false    // 是否已完成听写，用于从结果页返回时不再自动播放
   },
 
   countdownTimer: null,
@@ -103,9 +104,9 @@ Page({
     this.setData({ isPlaying: false, countdown: 0 })
   },
 
-  // 页面回到前台：若未在退出确认弹窗中，重新播报当前题
+  // 页面回到前台：若未在退出确认弹窗中且未完成，重新播报当前题
   onShow() {
-    if (this.isHidden && this.data.dataReady && !this.data.showExitConfirm) {
+    if (this.isHidden && this.data.dataReady && !this.data.showExitConfirm && !this.data.finished) {
       this.isHidden = false
       // 回前台后重新播报当前题，恢复听写节奏
       this.playCurrent()
@@ -232,8 +233,8 @@ Page({
   },
 
   onNext() {
-    // 防快速点击：提交中直接忽略
-    if (this.data.submitting) return
+    // 防快速点击：提交中或已完成则忽略
+    if (this.data.submitting || this.data.finished) return
     this.setData({ submitting: true })
 
     const { questions, currentIndex, userInput, answers } = this.data
@@ -305,6 +306,9 @@ Page({
     const accuracy = total > 0 ? Math.round((correctCount / total) * 1000) / 10 : 0
     const wrongWords = answers.filter(a => !a.isCorrect)
 
+    // 标记已完成，防止从结果页返回后自动播放或重复提交
+    this.setData({ finished: true, submitting: false })
+
     wx.navigateTo({
       url: '/pages/result/result',
       success: (nav) => {
@@ -315,8 +319,8 @@ Page({
       },
       fail: (err) => {
         console.error('跳转结果页失败:', err)
-        // 页面栈满或其他原因导致跳转失败，重置状态并提示
-        this.setData({ submitting: false })
+        // 页面栈满或其他原因导致跳转失败，恢复状态并提示
+        this.setData({ finished: false, submitting: false })
         wx.showToast({ title: '提交失败，请重试', icon: 'none' })
       }
     })
