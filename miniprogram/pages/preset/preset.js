@@ -6,11 +6,20 @@ const {
   importPresetUnits,
   getDictationList
 } = require('../../utils/cloudApi.js')
+const { generatePresetUnitAudio } = require('../../utils/batchTts.js')
+const {
+  SUBJECTS,
+  GRADE_LEVELS,
+  SUBJECT_LABELS,
+  getDefaultMode
+} = require('../../utils/constants.js')
+const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
 const GRADE_LEVEL_SUBJECTS = {
-  chinese: ['chinese'],
-  english: ['english'],
-  national: ['chinese', 'english']
+  [GRADE_LEVELS.PRIMARY]: [SUBJECTS.CHINESE, SUBJECTS.ENGLISH],
+  [GRADE_LEVELS.JUNIOR]: [SUBJECTS.CHINESE, SUBJECTS.ENGLISH],
+  [GRADE_LEVELS.SENIOR]: [SUBJECTS.CHINESE, SUBJECTS.ENGLISH],
+  [GRADE_LEVELS.NATIONAL]: [SUBJECTS.CHINESE, SUBJECTS.ENGLISH]
 }
 
 Page({
@@ -22,8 +31,8 @@ Page({
     // 筛选维度
     gradeLevels: [],
     subjects: [
-      { value: 'chinese', label: '语文' },
-      { value: 'english', label: '英语' }
+      { value: SUBJECTS.CHINESE, label: SUBJECT_LABELS[SUBJECTS.CHINESE] },
+      { value: SUBJECTS.ENGLISH, label: SUBJECT_LABELS[SUBJECTS.ENGLISH] }
     ],
     versions: [],
     contentTypes: [],
@@ -41,7 +50,11 @@ Page({
 
     // 单元选择（同样使用 Map 兼容旧版基础库）
     selectedUnitIds: [],
-    selectedUnitMap: {}
+    selectedUnitMap: {},
+
+    // 批量音频生成状态
+    generatingAudio: false,
+    audioProgress: { current: 0, total: 0, word: '' }
   },
 
   async onLoad() {
@@ -57,7 +70,7 @@ Page({
     try {
       const res = await listPresetFilters()
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '加载筛选失败', icon: 'none' })
+        toast(res.message || '加载筛选失败')
         return
       }
       const { gradeLevels, versions, contentTypes } = res.data || {}
@@ -68,7 +81,7 @@ Page({
       })
     } catch (err) {
       console.error('加载筛选维度失败:', err)
-      wx.showToast({ title: '加载筛选失败', icon: 'none' })
+      toast('加载筛选失败')
     }
   },
 
@@ -84,7 +97,7 @@ Page({
       // 快速切换条件时，丢弃过期请求结果
       if (seq !== this._textbookReqSeq) return
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '加载教材失败', icon: 'none' })
+        toast(res.message || '加载教材失败')
         this.setData({ textbooks: [], units: [] })
         return
       }
@@ -99,7 +112,7 @@ Page({
     } catch (err) {
       if (seq !== this._textbookReqSeq) return
       console.error('加载教材失败:', err)
-      wx.showToast({ title: '加载教材失败', icon: 'none' })
+      toast('加载教材失败')
     }
   },
 
@@ -115,7 +128,7 @@ Page({
       })
       if (seq !== this._unitReqSeq) return
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '加载单元失败', icon: 'none' })
+        toast(res.message || '加载单元失败')
         this.setData({ units: [], selectedUnitIds: [], selectedUnitMap: {} })
         return
       }
@@ -127,7 +140,7 @@ Page({
     } catch (err) {
       if (seq !== this._unitReqSeq) return
       console.error('加载单元失败:', err)
-      wx.showToast({ title: '加载单元失败', icon: 'none' })
+      toast('加载单元失败')
     }
   },
 
@@ -220,34 +233,31 @@ Page({
   async onImport() {
     const { selectedUnitIds } = this.data
     if (selectedUnitIds.length === 0) {
-      wx.showToast({ title: '请先选择单元', icon: 'none' })
+      toast('请先选择单元')
       return
     }
     if (this.data.importing) return
     this.setData({ importing: true })
-    wx.showLoading({ title: '导入中...' })
+    loading('导入中...')
     try {
       const res = await importPresetUnits({ presetUnitIds: selectedUnitIds })
-      wx.hideLoading()
+      hideLoading()
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '导入失败', icon: 'none' })
+        toast(res.message || '导入失败')
         return
       }
-      wx.showModal({
-        title: '导入成功',
-        content: `${res.data.successCount} 个单元已加入「我的单元」，是否立即前往听写？`,
+      modal('导入成功', `${res.data.successCount} 个单元已加入「我的单元」，是否立即前往听写？`, {
         confirmText: '去听写',
-        cancelText: '再逛逛',
-        success: (r) => {
-          if (r.confirm) {
-            wx.reLaunch({ url: '/pages/index/index' })
-          }
+        cancelText: '再逛逛'
+      }).then((r) => {
+        if (r.confirm) {
+          wx.reLaunch({ url: '/pages/index/index' })
         }
       })
     } catch (err) {
-      wx.hideLoading()
+      hideLoading()
       console.error('导入失败:', err)
-      wx.showToast({ title: '导入失败', icon: 'none' })
+      toast('导入失败')
     } finally {
       this.setData({ importing: false })
     }
@@ -256,38 +266,36 @@ Page({
   async onStartDictation() {
     const { selectedUnitIds, selectedSubject, selectedTextbook } = this.data
     if (selectedUnitIds.length === 0) {
-      wx.showToast({ title: '请先选择单元', icon: 'none' })
+      toast('请先选择单元')
       return
     }
     if (this.data.submitting) return
     this.setData({ submitting: true })
-    wx.showLoading({ title: '准备题目...' })
+    loading('准备题目...')
 
     try {
-      // 根据学科确定默认听写模式：语文默认看拼音写汉字，英语默认英→中
-      const mode = selectedSubject === 'chinese' ? 'pinyin2hanzi' : 'en2cn'
+      const mode = getDefaultMode(selectedSubject)
       const res = await getDictationList({
         presetUnitIds: selectedUnitIds,
         subject: selectedSubject,
         mode,
         wordCountRange: { min: 5, max: 30 }
       })
-      wx.hideLoading()
+      hideLoading()
 
       if (res.code !== 0) {
-        wx.showToast({ title: res.message || '生成题目失败', icon: 'none' })
+        toast(res.message || '生成题目失败')
         this.setData({ submitting: false })
         return
       }
 
       const questions = (res.data && res.data.words) || []
       if (questions.length === 0) {
-        wx.showToast({ title: '所选单元暂无内容', icon: 'none' })
+        toast('所选单元暂无内容')
         this.setData({ submitting: false })
         return
       }
 
-      // 记录教材信息用于结果页
       const textbookName = selectedTextbook ? selectedTextbook.name : ''
       const finalMode = (res.data && res.data.mode) || mode
 
@@ -307,11 +315,60 @@ Page({
         }
       })
     } catch (err) {
-      wx.hideLoading()
+      hideLoading()
       console.error('生成题目失败:', err)
-      wx.showToast({ title: '生成题目失败', icon: 'none' })
+      toast('生成题目失败')
       this.setData({ submitting: false })
     }
+  },
+
+  // 为选中的预置单元批量生成 TTS 音频并上传云存储
+  async onBatchGenerateAudio() {
+    const { selectedUnitIds, units, generatingAudio } = this.data
+    if (generatingAudio) return
+    if (selectedUnitIds.length === 0) {
+      toast('请先选择单元')
+      return
+    }
+
+    const selectedUnits = units.filter(u => selectedUnitIds.includes(u._id))
+    const totalWords = selectedUnits.reduce((sum, u) => sum + (u.wordCount || 0), 0)
+    if (totalWords === 0) {
+      toast('所选单元暂无内容')
+      return
+    }
+
+    const confirmed = await modal(
+      '批量生成音频',
+      `将为 ${selectedUnitIds.length} 个单元约 ${totalWords} 条内容生成音频，耗时较长且消耗流量，是否继续？`,
+      { confirmText: '开始生成' }
+    )
+    if (!confirmed.confirm) return
+
+    this.setData({ generatingAudio: true, audioProgress: { current: 0, total: 0, word: '' } })
+    loading('音频生成中...')
+
+    let overallSuccess = 0
+    let overallFail = 0
+    for (const unit of selectedUnits) {
+      try {
+        const res = await generatePresetUnitAudio(unit._id, {
+          batchSize: 20,
+          onProgress: (current, total, word) => {
+            this.setData({ audioProgress: { current, total, word } })
+          }
+        })
+        overallSuccess += res.success
+        overallFail += res.fail
+      } catch (err) {
+        console.error(`单元 ${unit.name} 音频生成失败:`, err)
+        overallFail += unit.wordCount || 0
+      }
+    }
+
+    hideLoading()
+    this.setData({ generatingAudio: false, audioProgress: { current: 0, total: 0, word: '' } })
+    modal('生成完成', `成功 ${overallSuccess} 条，失败 ${overallFail} 条`, { showCancel: false })
   },
 
   goCustomInput() {

@@ -65,6 +65,41 @@ function speak(text, lang = FALLBACK_LANG, callbacks = {}) {
   return { stop }
 }
 
+/**
+ * 合成语音并返回临时文件路径，用于上传云存储
+ * @param {string} text 需要合成的文本
+ * @param {string} lang 语言：zh_CN / en_US
+ * @returns {Promise<string>} 临时音频文件路径
+ */
+function synthesize(text, lang = FALLBACK_LANG) {
+  return new Promise((resolve, reject) => {
+    if (!text || !text.trim()) {
+      reject(new Error('合成文本不能为空'))
+      return
+    }
+    const content = text.trim()
+    if (!plugin || typeof plugin.textToSpeech !== 'function') {
+      reject(new Error('同声传译插件未配置'))
+      return
+    }
+    plugin.textToSpeech({
+      lang,
+      tts: true,
+      content,
+      success(res) {
+        if (res.filename) {
+          resolve(res.filename)
+        } else {
+          reject(new Error('TTS 未返回音频文件'))
+        }
+      },
+      fail(err) {
+        reject(err || new Error('TTS 合成失败'))
+      }
+    })
+  })
+}
+
 function playAudio(src, callbacks) {
   const innerAudioContext = wx.createInnerAudioContext()
   innerAudioContext.src = src
@@ -117,6 +152,7 @@ function resolveLang(promptType, subject) {
 
 module.exports = {
   speak,
+  synthesize,
   stop,
   resolveLang
 }

@@ -196,6 +196,39 @@
   margin: 0;
 }
 
+/* 批量生成音频 */
+.audio-action-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 124rpx;
+  padding: 16rpx 32rpx;
+  background: #fff;
+  z-index: 15;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.btn-audio {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 16rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 28rpx;
+  margin: 0;
+}
+
+.btn-audio::after {
+  border: none;
+}
+
+.audio-progress {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-top: 8rpx;
+}
+
 /* 自定义输入入口 */
 .custom-input-bar {
   text-align: center;

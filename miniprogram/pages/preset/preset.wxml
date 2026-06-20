@@ -137,7 +137,7 @@
         class="btn-secondary"
         bindtap="onImport"
         loading="{{importing}}"
-        disabled="{{importing || selectedUnitIds.length === 0}}"
+        disabled="{{importing || selectedUnitIds.length === 0 || generatingAudio}}"
       >
         导入到我的单元
       </button>
@@ -145,10 +145,25 @@
         class="btn-primary"
         bindtap="onStartDictation"
         loading="{{submitting}}"
-        disabled="{{submitting || selectedUnitIds.length === 0}}"
+        disabled="{{submitting || selectedUnitIds.length === 0 || generatingAudio}}"
       >
         直接开始听写
       </button>
+    </view>
+
+    <!-- 批量生成音频 -->
+    <view class="audio-action-area" wx:if="{{selectedUnitIds.length > 0}}">
+      <button
+        class="btn-audio"
+        bindtap="onBatchGenerateAudio"
+        loading="{{generatingAudio}}"
+        disabled="{{generatingAudio}}"
+      >
+        {{generatingAudio ? '音频生成中...' : '为选中单元预生成音频'}}
+      </button>
+      <view class="audio-progress" wx:if="{{generatingAudio}}">
+        <text>{{audioProgress.current}} / {{audioProgress.total}} {{audioProgress.word}}</text>
+      </view>
     </view>
 
     <!-- 自定义输入入口 -->

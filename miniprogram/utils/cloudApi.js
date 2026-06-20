@@ -103,6 +103,14 @@ function importPresetUnits(params = {}) {
   return callCloud('presetManage', { action: 'importPresetUnits', presetUnitIds })
 }
 
+function listPresetWordsNeedAudio(unitId, limit = 50) {
+  return callCloud('presetManage', { action: 'listWordsNeedAudio', unitId, limit })
+}
+
+function savePresetAudioUrl(wordId, audioUrl) {
+  return callCloud('presetManage', { action: 'saveAudioUrl', wordId, audioUrl })
+}
+
 // ========== 听写记录 ==========
 
 function saveUserLog(log) {
@@ -171,5 +179,7 @@ module.exports = {
   listPresetTextbooks,
   listPresetUnits,
   previewPresetWords,
-  importPresetUnits
+  importPresetUnits,
+  listPresetWordsNeedAudio,
+  savePresetAudioUrl
 }

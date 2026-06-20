@@ -79,9 +79,13 @@ exports.main = async (event) => {
         return await importPresetUnit(event, openid)
       case 'importPresetUnits':
         return await importPresetUnits(event, openid)
+      case 'listWordsNeedAudio':
+        return await listWordsNeedAudio(event)
+      case 'saveAudioUrl':
+        return await saveAudioUrl(event)
       case 'seed':
-        // ⚠️ 仅用于首次部署时初始化示例数据
-        return await seedPresetData()
+        // ⚠️ 仅用于首次部署时初始化示例数据；force=true 可清空并重新导入
+        return await seedPresetData(event.force)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -231,7 +235,7 @@ async function importPresetUnit({ presetUnitId }, openid) {
         phonetic: pw.phonetic || '',
         partOfSpeech: pw.partOfSpeech || '',
         lesson: pw.lesson || 1,
-        audioUrl: '',
+        audioUrl: pw.audioUrl || '',
         order: pw.order || 0,
         difficulty: pw.difficulty || 3,
         examples: pw.examples || [],
@@ -277,6 +281,63 @@ async function importPresetUnits({ presetUnitIds = [] }, openid) {
   }
 }
 
+/**
+ * 查询指定单元下尚未生成音频的预置单词
+ * @param {Object} param
+ * @param {string} param.unitId 单元 ID
+ * @param {number} param.limit 单次返回数量，默认 50
+ */
+async function listWordsNeedAudio({ unitId, limit = 50 }) {
+  if (!unitId) {
+    return { code: 2, message: '缺少单元 ID' }
+  }
+
+  const { data } = await db.collection('presetWords')
+    .where({
+      unitId,
+      audioUrl: db.command.or(db.command.eq(''), db.command.eq(null))
+    })
+    .orderBy('order', 'asc')
+    .limit(Number(limit) || 50)
+    .get()
+
+  return {
+    code: 0,
+    data: data.map(item => ({
+      wordId: item._id,
+      word: item.word,
+      subject: item.subject,
+      contentType: item.contentType,
+      pinyin: item.pinyin || '',
+      meaning: item.meaning || ''
+    }))
+  }
+}
+
+/**
+ * 保存预置单词的音频 URL
+ * @param {Object} param
+ * @param {string} param.wordId 单词文档 ID
+ * @param {string} param.audioUrl 云存储文件 ID 或 https 链接
+ */
+async function saveAudioUrl({ wordId, audioUrl }) {
+  if (!wordId) {
+    return { code: 2, message: '缺少单词 ID' }
+  }
+  if (typeof audioUrl !== 'string' || !audioUrl.trim()) {
+    return { code: 2, message: '音频链接不能为空' }
+  }
+
+  await db.collection('presetWords').doc(wordId).update({
+    data: {
+      audioUrl: audioUrl.trim(),
+      updatedAt: new Date().toISOString()
+    }
+  })
+
+  return { code: 0, message: '音频链接保存成功' }
+}
+
 async function paginateQuery(query, pageSize = 100) {
   let all = []
   let hasMore = true
@@ -288,11 +349,17 @@ async function paginateQuery(query, pageSize = 100) {
   return all
 }
 
-// 初始化示例预置数据（幂等：已有数据则跳过）
-async function seedPresetData() {
-  const { data: existing } = await db.collection('presetTextbooks').limit(1).get()
-  if (existing.length > 0) {
-    return { code: 0, message: '示例数据已存在，无需重复初始化' }
+// 初始化示例预置数据（幂等：已有数据则跳过；force=true 会清空后重新导入）
+async function seedPresetData(force = false) {
+  if (force) {
+    await db.collection('presetTextbooks').where({}).remove()
+    await db.collection('presetUnits').where({}).remove()
+    await db.collection('presetWords').where({}).remove()
+  } else {
+    const { data: existing } = await db.collection('presetTextbooks').limit(1).get()
+    if (existing.length > 0) {
+      return { code: 0, message: '示例数据已存在，无需重复初始化' }
+    }
   }
 
   try {
