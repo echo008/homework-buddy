@@ -240,6 +240,15 @@ function buildQuestion(word, mode, index) {
         answer: word.word,
         answerType: ANSWER_TYPES.CHINESE
       }
+    case MODES.HANZI2PINYIN:
+      // 写拼音 -> 汉字（语文专用）
+      return {
+        ...base,
+        prompt: word.word,
+        promptType: PROMPT_TYPES.CHINESE,
+        answer: word.pinyin || word.word,
+        answerType: ANSWER_TYPES.PINYIN
+      }
     case MODES.EN2CN:
     default:
       // 纯英文 -> 默写中文

@@ -135,26 +135,44 @@ async function updateWord(word = {}, openid) {
 
   updateData.updatedAt = new Date().toISOString()
 
-  // 如果更新了 word 或 unitId，需要重新校验重复
-  if (updateData.word !== undefined) {
-    const unitId = word.unitId !== undefined ? word.unitId : current.unitId
+  // 如果修改了所属单元，需要校验新单元归属权
+  if (word.unitId !== undefined && word.unitId !== current.unitId) {
+    const unitRes = await db.collection('units').doc(word.unitId).get()
+    const unit = unitRes.data
+    if (!unit) {
+      return { code: 4, message: '目标单元不存在' }
+    }
+    if (unit.createdBy !== openid) {
+      return { code: 5, message: '无权将单词移动到他人的单元' }
+    }
+    // 学科一致性校验
+    if (unit.subject && unit.subject !== current.subject) {
+      return { code: 2, message: '单词学科与目标单元学科不一致' }
+    }
+    updateData.unitId = word.unitId
+  }
+
+  // 校验目标单元内是否已存在相同单词
+  const targetUnitId = updateData.unitId !== undefined ? updateData.unitId : current.unitId
+  const targetWord = updateData.word !== undefined ? updateData.word : current.word
+  if (targetUnitId && targetWord) {
     const { total } = await db.collection('words')
-      .where({ word: updateData.word, unitId, _id: db.command.neq(_id) })
+      .where({ word: targetWord, unitId: targetUnitId, _id: db.command.neq(_id) })
       .count()
     if (total > 0) {
       return { code: 3, message: '该单元下已存在相同单词' }
     }
-    if (word.unitId !== undefined) updateData.unitId = unitId
   }
 
   await db.collection('words').doc(_id).update({ data: updateData })
 
   // 同步新旧单元词数
+  const oldUnitId = current.unitId
   const after = await db.collection('words').doc(_id).get()
   const newUnitId = after.data && after.data.unitId
   if (newUnitId) await syncUnitWordCount(newUnitId)
-  if (word.unitId !== undefined && word.unitId !== newUnitId) {
-    await syncUnitWordCount(word.unitId)
+  if (oldUnitId && oldUnitId !== newUnitId) {
+    await syncUnitWordCount(oldUnitId)
   }
 
   return { code: 0, message: '更新成功' }

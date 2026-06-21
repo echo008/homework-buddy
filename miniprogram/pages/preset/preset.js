@@ -275,11 +275,12 @@ Page({
 
     try {
       const mode = getDefaultMode(selectedSubject)
+      const wordCountRange = { min: 5, max: 30 }
       const res = await getDictationList({
         presetUnitIds: selectedUnitIds,
         subject: selectedSubject,
         mode,
-        wordCountRange: { min: 5, max: 30 }
+        wordCountRange
       })
       hideLoading()
 
@@ -300,13 +301,14 @@ Page({
       const finalMode = (res.data && res.data.mode) || mode
 
       wx.navigateTo({
-        url: `/pages/dictation/dictation?mode=${encodeURIComponent(finalMode)}&subject=${encodeURIComponent(selectedSubject)}&interval=5`,
+        url: `/pages/dictation/dictation?mode=${encodeURIComponent(finalMode)}&subject=${encodeURIComponent(selectedSubject)}&interval=5&min=${wordCountRange.min}&max=${wordCountRange.max}`,
         success: (navRes) => {
           navRes.eventChannel.emit('dictationData', {
             questions,
             total: res.data.total,
             unitIds: selectedUnitIds,
             textbookName,
+            wordCountRange,
             source: 'preset'
           })
         },
