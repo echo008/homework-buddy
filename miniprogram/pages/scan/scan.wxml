@@ -4,7 +4,7 @@
     <view class="scan-icon">📷</view>
     <view class="scan-title">拍照识字导入</view>
     <view class="scan-desc">
-      {{subject === 'english' ? '英语' : '语文'}} · 拍一张课本照片，AI 自动识别并结构化为单词表
+      {{subjectLabel}} · 拍一张课本照片，AI 自动识别并结构化为单词表
     </view>
   </view>
 

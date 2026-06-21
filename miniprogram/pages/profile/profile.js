@@ -1,7 +1,17 @@
 // pages/profile/profile.js - 我的/词库管理
 const { getUserLogs } = require('../../utils/cloudApi.js')
-const { PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
+const { SUBJECTS, MODE_LABELS, SUBJECT_LABELS, PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
 const { toast } = require('../../utils/ui.js')
+
+function enrichLog(log) {
+  const tagClass = log.subject === SUBJECTS.ENGLISH ? 'tag-primary' : 'tag-accent'
+  return {
+    ...log,
+    subjectLabel: SUBJECT_LABELS[log.subject] || log.subject,
+    modeLabel: MODE_LABELS[log.mode] || log.mode,
+    tagClass
+  }
+}
 
 // 时间格式化：ISO/Date → 友好显示（如 "2026-06-19 14:30"）
 function formatTime(input) {
@@ -45,7 +55,7 @@ Page({
       const res = await getUserLogs(50)
       const logs = (res && res.code === 0) ? (res.data || []) : []
       // 时间格式化，避免直接显示 ISO 字符串
-      const formatted = logs.map((log) => ({
+      const formatted = logs.map((log) => enrichLog({
         ...log,
         createdAtText: formatTime(log.createdAt)
       }))

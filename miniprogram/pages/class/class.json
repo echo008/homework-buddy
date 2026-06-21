@@ -1,5 +1,4 @@
 {
   "navigationBarTitleText": "班级共享",
-  "enablePullDownRefresh": true,
-  "usingComponents": {}
+  "enablePullDownRefresh": true
 }

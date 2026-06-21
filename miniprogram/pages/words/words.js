@@ -1,7 +1,7 @@
 // pages/words/words.js - 单词管理页（支持自定义录音）
 const { getWordsByUnit, saveWord, deleteWord } = require('../../utils/cloudApi.js')
 const audio = require('../../utils/audio.js')
-const { SUBJECTS } = require('../../utils/constants.js')
+const { SUBJECTS, SUBJECT_LABELS } = require('../../utils/constants.js')
 const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
 Page({
@@ -9,6 +9,9 @@ Page({
     unitId: '',
     unitName: '',
     subject: SUBJECTS.ENGLISH,
+    subjectLabel: SUBJECT_LABELS[SUBJECTS.ENGLISH],
+    isEnglish: true,
+    isChinese: false,
     words: [],
     loading: false,
 
@@ -38,7 +41,14 @@ Page({
       wx.navigateBack()
       return
     }
-    this.setData({ unitId, unitName: decodeURIComponent(unitName), subject })
+    this.setData({
+      unitId,
+      unitName: decodeURIComponent(unitName),
+      subject,
+      subjectLabel: SUBJECT_LABELS[subject] || '',
+      isEnglish: subject === SUBJECTS.ENGLISH,
+      isChinese: subject === SUBJECTS.CHINESE
+    })
     // 由 onShow 统一加载，避免 onLoad + onShow 重复请求
   },
 

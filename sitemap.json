@@ -1,7 +1,0 @@
-{
-  "desc": "Homework Buddy · 智听 - AI 自动化听写小程序，支持语文/英语，拍照识字、AI 结构化、随机听写、语音播报。",
-  "rules": [{
-    "action": "allow",
-    "page": "*"
-  }]
-}

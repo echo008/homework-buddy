@@ -48,8 +48,8 @@
     <view class="card log-item" wx:for="{{logs}}" wx:key="_id" data-log="{{item}}" bindtap="onLogTap">
       <view class="log-top">
         <view class="log-subject-wrap">
-          <text class="tag {{item.subject === 'english' ? 'tag-primary' : 'tag-accent'}}">{{item.subject === 'english' ? '英语' : '语文'}}</text>
-          <text class="log-mode">{{item.mode === 'en2cn' ? '英→中' : item.mode === 'cn2en' ? '中→英' : '拼音→汉字'}}</text>
+          <text class="tag {{item.tagClass}}">{{item.subjectLabel}}</text>
+          <text class="log-mode">{{item.modeLabel}}</text>
         </view>
         <text class="log-accuracy">{{item.accuracy}}%</text>
       </view>
@@ -75,7 +75,7 @@
 
       <view class="log-modal-body" wx:if="{{currentLog}}">
         <view class="log-modal-info">
-          <text class="log-modal-subject">{{currentLog.subject === 'english' ? '英语' : '语文'}} · {{currentLog.mode === 'en2cn' ? '英→中' : currentLog.mode === 'cn2en' ? '中→英' : '拼音→汉字'}}</text>
+          <text class="log-modal-subject">{{currentLog.subjectLabel}} · {{currentLog.modeLabel}}</text>
           <text class="log-modal-time">{{currentLog.createdAtText}}</text>
         </view>
 

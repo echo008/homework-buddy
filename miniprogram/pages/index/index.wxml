@@ -150,22 +150,22 @@
     </view>
     <view class="modal-body">
       <view class="form-row">
-        <text class="form-label">{{subject === 'english' ? '英文单词' : '汉字/词语'}}</text>
+        <text class="form-label">{{isEnglish ? '英文单词' : '汉字/词语'}}</text>
         <input class="form-input" value="{{addForm.word}}" data-field="word" bindinput="onAddInput" placeholder="请输入" />
       </view>
       <view class="form-row">
         <text class="form-label">中文释义</text>
         <input class="form-input" value="{{addForm.meaning}}" data-field="meaning" bindinput="onAddInput" placeholder="请输入释义" />
       </view>
-      <view class="form-row" wx:if="{{subject === 'chinese'}}">
+      <view class="form-row" wx:if="{{isChinese}}">
         <text class="form-label">拼音</text>
         <input class="form-input" value="{{addForm.pinyin}}" data-field="pinyin" bindinput="onAddInput" placeholder="如 péng" />
       </view>
-      <view class="form-row" wx:if="{{subject === 'english'}}">
+      <view class="form-row" wx:if="{{isEnglish}}">
         <text class="form-label">词性</text>
         <input class="form-input" value="{{addForm.partOfSpeech}}" data-field="partOfSpeech" bindinput="onAddInput" placeholder="如 n. / v." />
       </view>
-      <view class="form-row" wx:if="{{subject === 'english'}}">
+      <view class="form-row" wx:if="{{isEnglish}}">
         <text class="form-label">音标</text>
         <input class="form-input" value="{{addForm.phonetic}}" data-field="phonetic" bindinput="onAddInput" placeholder="如 /həˈləʊ/" />
       </view>

@@ -36,23 +36,35 @@
 /miniprogram
   /pages
     /index        首页 - 听写配置
+    /preset       智能选题 - 按学段/教材/单元自动选择
     /scan         拍照/上传页
     /dictation    听写进行页
     /result       结果批改页
-    /profile      我的/词库管理
-  /components
-    /unit-picker  单元选择器
-    /word-item    单词卡片
-  /cloudfunctions
-    /parseOcr     OCR 解析 + LLM 清洗
-    /getDictationList  随机抽题引擎
-    /addWord      手动添加单词
+    /profile      我的/历史记录
+    /units        单元管理
+    /words        单词管理
+    /class        班级共享
   /utils
-    /aiClient.js  AI 调用封装
-    /db.js        数据库封装
+    /audio.js     录音与播放工具
+    /batchTts.js  批量 TTS 音频生成
+    /cloudApi.js  云函数统一调用
+    /constants.js 项目通用常量
+    /tts.js       语音播报封装
+    /ui.js        通用 UI 交互
+  /cloudfunctions
+    /login        获取用户 openid
+    /parseOcr     OCR 识别 + LLM 结构化清洗
+    /getDictationList  随机抽题引擎
+    /unitManage   单元管理
+    /wordManage   单词管理
+    /classManage  班级共享
+    /presetManage 预置内容管理
+    /logManage    听写记录管理
 /docs
   /schemas        云数据库 JSON Schema
   /contest        大赛报名材料
+/tests
+  Jest 单元测试
 ```
 
 ## 快速开始

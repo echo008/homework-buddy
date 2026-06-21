@@ -3,10 +3,21 @@ const { getDictationList, saveWord, getManagedUnits } = require('../../utils/clo
 const { SUBJECTS, MODES, SUBJECT_LABELS, MODE_LABELS } = require('../../utils/constants.js')
 const { toast, loading, hideLoading } = require('../../utils/ui.js')
 
+function getSubjectDerived(subject) {
+  return {
+    subjectLabel: SUBJECT_LABELS[subject] || '',
+    isEnglish: subject === SUBJECTS.ENGLISH,
+    isChinese: subject === SUBJECTS.CHINESE
+  }
+}
+
 Page({
   data: {
     // 学科切换
     subject: SUBJECTS.ENGLISH,
+    subjectLabel: SUBJECT_LABELS[SUBJECTS.ENGLISH],
+    isEnglish: true,
+    isChinese: false,
     subjectTabs: [
       { key: SUBJECTS.ENGLISH, label: SUBJECT_LABELS[SUBJECTS.ENGLISH] },
       { key: SUBJECTS.CHINESE, label: SUBJECT_LABELS[SUBJECTS.CHINESE] }
@@ -61,7 +72,7 @@ Page({
       const modes = this.data.modeOptions[subject]
       const validModes = modes.map(m => m.value)
       const mode = options.mode && validModes.includes(options.mode) ? options.mode : modes[0].value
-      this.setData({ subject, mode })
+      this.setData({ subject, mode, ...getSubjectDerived(subject) })
     }
     // 首次加载由 onShow 统一触发，避免重复请求
   },
@@ -78,7 +89,8 @@ Page({
     this.setData({
       subject,
       selectedUnitIds: [],
-      mode: modes[0].value
+      mode: modes[0].value,
+      ...getSubjectDerived(subject)
     })
     this.loadUnits(subject)
   },

@@ -13,6 +13,15 @@ const {
 const { SUBJECTS, SUBJECT_LABELS } = require('../../utils/constants.js')
 const { toast, loading, hideLoading, modal } = require('../../utils/ui.js')
 
+function enrichClass(cls) {
+  const tagClass = cls.subject === SUBJECTS.ENGLISH ? 'tag-primary' : 'tag-accent'
+  return {
+    ...cls,
+    subjectLabel: SUBJECT_LABELS[cls.subject] || cls.subject,
+    tagClass
+  }
+}
+
 Page({
   data: {
     view: 'list', // list | detail
@@ -107,7 +116,8 @@ Page({
       const res = await getMyClasses()
       if (seq !== this._classReqSeq) return
       if (res.code === 0) {
-        this.setData({ classes: res.data || [] })
+        const classes = (res.data || []).map(enrichClass)
+        this.setData({ classes })
       } else {
         toast(res.message || '加载失败')
       }
@@ -225,7 +235,7 @@ Page({
       if (seq !== this._detailReqSeq) return
       if (res.code === 0) {
         this.setData({
-          currentClass: res.data,
+          currentClass: enrichClass(res.data),
           isCreator: !!res.data.isCreator
         })
       } else {

@@ -1,11 +1,12 @@
 // pages/scan/scan.js - 拍照识字导入页
 const { parseOcrImage } = require('../../utils/cloudApi.js')
-const { SUBJECTS } = require('../../utils/constants.js')
+const { SUBJECTS, SUBJECT_LABELS } = require('../../utils/constants.js')
 const { toast, modal } = require('../../utils/ui.js')
 
 Page({
   data: {
     subject: SUBJECTS.ENGLISH,
+    subjectLabel: SUBJECT_LABELS[SUBJECTS.ENGLISH],
     unitId: '',
     loading: false,
     status: '',
@@ -21,8 +22,10 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500)
       return
     }
+    const normalizedSubject = subject || SUBJECTS.ENGLISH
     this.setData({
-      subject: subject || SUBJECTS.ENGLISH,
+      subject: normalizedSubject,
+      subjectLabel: SUBJECT_LABELS[normalizedSubject] || '',
       unitId
     })
   },
