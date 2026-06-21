@@ -180,9 +180,9 @@ Page({
     })
   },
 
-  // 播报当前题：优先使用自定义录音，否则用 TTS；拼音模式仅显示文字
+  // 播报当前题：自定义录音仅在与当前模式匹配时使用；拼音模式仅显示文字
   async playCurrent() {
-    const { questions, currentIndex } = this.data
+    const { questions, currentIndex, mode } = this.data
     const current = questions[currentIndex]
     if (!current) return
 
@@ -193,7 +193,11 @@ Page({
     // 生成本次播放令牌，获取临时链接期间若被新请求覆盖则丢弃本次结果
     const token = ++this._playToken
 
-    if (current.audioUrl) {
+    // 自定义音频是用户针对 word.word 录制的读音，仅在"提示内容=word.word"时使用，
+    // 否则会造成泄题或语言不匹配。当前仅 EN2CN 模式满足该条件。
+    const useCustomAudio = current.audioUrl && canUseCustomAudio(mode)
+
+    if (useCustomAudio) {
       this.setData({ isPlaying: true })
       try {
         const audioCtx = await playCustomAudio(current.audioUrl, {
@@ -204,7 +208,7 @@ Page({
           onError: () => {
             this.setData({ isPlaying: false })
             this.currentAudio = null
-            // 录音播放失败时降级到 TTS
+            // 录音播放失败时降级到 TTS（按 promptType 选择语言）
             this.playTTS(current)
           }
         })
@@ -257,7 +261,7 @@ Page({
     if (this.data.submitting || this.data.finished) return
     this.setData({ submitting: true })
 
-    const { questions, currentIndex, userInput, answers } = this.data
+    const { questions, currentIndex, userInput, answers, mode } = this.data
     const current = questions[currentIndex]
     if (!current) {
       this.setData({ submitting: false })
@@ -272,8 +276,15 @@ Page({
 
     const newAnswers = [...answers, {
       wordId: current.wordId,
-      word: current.prompt,
+      unitId: current.unitId || '',
+      word: current.word,
+      meaning: current.meaning || '',
+      pinyin: current.pinyin || '',
+      subject: current.subject,
+      mode,
+      prompt: current.prompt,
       promptType: current.promptType,
+      answer: current.answer,
       answerType: current.answerType,
       correctAnswer: current.answer,
       userAnswer: userInput.trim(),
@@ -411,4 +422,14 @@ function normalizeAnswer(value, answerType) {
     normalized = normalized.replace(/\s+/g, '')
   }
   return normalized
+}
+
+/**
+ * 判断当前模式下能否使用自定义录音。
+ * 自定义录音朗读的是 word.word 本身，因此只有在 prompt === word.word 时使用才不会泄题/语言错位。
+ * @param {string} mode
+ * @returns {boolean}
+ */
+function canUseCustomAudio(mode) {
+  return mode === MODES.EN2CN
 }

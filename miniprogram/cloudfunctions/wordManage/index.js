@@ -13,6 +13,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const { ALLOWED_SUBJECTS, SUBJECTS } = require('../common/constants.js')
+const { paginateQuery, isUnitAccessible } = require('../common/utils.js')
 
 exports.main = async (event) => {
   const { action } = event
@@ -22,13 +23,13 @@ exports.main = async (event) => {
   try {
     switch (action) {
       case 'create':
-        return await createWord(event.word, openid)
+        return await createWord(event.word, openid, db)
       case 'update':
-        return await updateWord(event.word, openid)
+        return await updateWord(event.word, openid, db)
       case 'delete':
-        return await deleteWord(event.wordId, openid)
+        return await deleteWord(event.wordId, openid, db)
       case 'list':
-        return await listWords(event.unitId, openid)
+        return await listWords(event.unitId, openid, db)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -38,7 +39,7 @@ exports.main = async (event) => {
   }
 }
 
-async function createWord(word = {}, openid) {
+async function createWord(word = {}, openid, db) {
   const {
     word: text,
     meaning,
@@ -98,12 +99,12 @@ async function createWord(word = {}, openid) {
   }
 
   const { _id } = await db.collection('words').add({ data })
-  await syncUnitWordCount(unitId)
+  await syncUnitWordCount(unitId, db)
 
   return { code: 0, message: '添加成功', data: { _id, ...data } }
 }
 
-async function updateWord(word = {}, openid) {
+async function updateWord(word = {}, openid, db) {
   const { _id } = word
   if (!_id) return { code: 2, message: '缺少单词 ID' }
 
@@ -118,6 +119,24 @@ async function updateWord(word = {}, openid) {
   }
 
   const updateData = {}
+
+  // 如果修改了所属单元，先校验目标单元归属权，并将其加入更新字段
+  if (word.unitId !== undefined && word.unitId !== current.unitId) {
+    const unitRes = await db.collection('units').doc(word.unitId).get()
+    const unit = unitRes.data
+    if (!unit) {
+      return { code: 4, message: '目标单元不存在' }
+    }
+    if (unit.createdBy !== openid) {
+      return { code: 5, message: '无权将单词移动到他人的单元' }
+    }
+    // 学科一致性校验
+    if (unit.subject && unit.subject !== current.subject) {
+      return { code: 2, message: '单词学科与目标单元学科不一致' }
+    }
+    updateData.unitId = word.unitId
+  }
+
   const fields = ['word', 'meaning', 'pinyin', 'lesson', 'partOfSpeech', 'phonetic', 'audioUrl', 'difficulty']
   fields.forEach((field) => {
     if (word[field] !== undefined) {
@@ -134,23 +153,6 @@ async function updateWord(word = {}, openid) {
   }
 
   updateData.updatedAt = new Date().toISOString()
-
-  // 如果修改了所属单元，需要校验新单元归属权
-  if (word.unitId !== undefined && word.unitId !== current.unitId) {
-    const unitRes = await db.collection('units').doc(word.unitId).get()
-    const unit = unitRes.data
-    if (!unit) {
-      return { code: 4, message: '目标单元不存在' }
-    }
-    if (unit.createdBy !== openid) {
-      return { code: 5, message: '无权将单词移动到他人的单元' }
-    }
-    // 学科一致性校验
-    if (unit.subject && unit.subject !== current.subject) {
-      return { code: 2, message: '单词学科与目标单元学科不一致' }
-    }
-    updateData.unitId = word.unitId
-  }
 
   // 校验目标单元内是否已存在相同单词
   const targetUnitId = updateData.unitId !== undefined ? updateData.unitId : current.unitId
@@ -170,15 +172,15 @@ async function updateWord(word = {}, openid) {
   const oldUnitId = current.unitId
   const after = await db.collection('words').doc(_id).get()
   const newUnitId = after.data && after.data.unitId
-  if (newUnitId) await syncUnitWordCount(newUnitId)
+  if (newUnitId) await syncUnitWordCount(newUnitId, db)
   if (oldUnitId && oldUnitId !== newUnitId) {
-    await syncUnitWordCount(oldUnitId)
+    await syncUnitWordCount(oldUnitId, db)
   }
 
   return { code: 0, message: '更新成功' }
 }
 
-async function deleteWord(wordId, openid) {
+async function deleteWord(wordId, openid, db) {
   if (!wordId) return { code: 2, message: '缺少单词 ID' }
 
   // 权限校验：仅创建者可删除自己的单词
@@ -194,68 +196,32 @@ async function deleteWord(wordId, openid) {
   const unitId = current.unitId
 
   await db.collection('words').doc(wordId).remove()
-  if (unitId) await syncUnitWordCount(unitId)
+  if (unitId) await syncUnitWordCount(unitId, db)
 
   return { code: 0, message: '删除成功' }
 }
 
-async function listWords(unitId, openid) {
+async function listWords(unitId, openid, db) {
   if (!unitId) return { code: 2, message: '缺少单元 ID' }
   if (!openid) return { code: 5, message: '用户未登录' }
 
   // 权限校验：仅单元创建者或班级共享成员可查看单词列表
-  const accessible = await isUnitAccessible(unitId, openid)
+  const accessible = await isUnitAccessible(unitId, openid, db)
   if (!accessible) {
     return { code: 5, message: '无权查看该单元的单词' }
   }
 
   // 分页查询，避免单次 get 默认 100 条限制导致数据丢失
-  const PAGE_SIZE = 100
-  let allData = []
-  let hasMore = true
-  while (hasMore) {
-    const query = db.collection('words')
+  const data = await paginateQuery(
+    db.collection('words')
       .where({ unitId })
       .orderBy('createdAt', 'desc')
-      .skip(allData.length)
-      .limit(PAGE_SIZE)
-    const { data } = await query.get()
-    allData = allData.concat(data)
-    if (data.length < PAGE_SIZE) {
-      hasMore = false
-    }
-  }
+  )
 
-  return { code: 0, data: allData }
+  return { code: 0, data }
 }
 
-/**
- * 判断单元是否对当前用户可见（自己创建或所在班级共享）
- * @param {string} unitId
- * @param {string} openid
- * @returns {Promise<boolean>}
- */
-async function isUnitAccessible(unitId, openid) {
-  try {
-    const unitRes = await db.collection('units').doc(unitId).get()
-    if (unitRes.data && unitRes.data.createdBy === openid) return true
-
-    const { data: classes } = await db.collection('classes')
-      .where({
-        sharedUnitIds: unitId,
-        members: openid
-      })
-      .limit(1)
-      .field({ _id: true })
-      .get()
-    return classes.length > 0
-  } catch (err) {
-    console.error('校验单元访问权限失败:', err)
-    return false
-  }
-}
-
-async function syncUnitWordCount(unitId) {
+async function syncUnitWordCount(unitId, db) {
   try {
     const { total } = await db.collection('words').where({ unitId }).count()
     await db.collection('units').doc(unitId).update({
@@ -265,3 +231,10 @@ async function syncUnitWordCount(unitId) {
     console.error('同步单元词数失败:', err)
   }
 }
+
+// 导出内部函数以便单元测试注入 mock db
+exports._createWord = createWord
+exports._updateWord = updateWord
+exports._deleteWord = deleteWord
+exports._listWords = listWords
+exports._syncUnitWordCount = syncUnitWordCount

@@ -23,9 +23,9 @@ exports.main = async (event) => {
   try {
     switch (action) {
       case 'save':
-        return await saveLog(event.log, openid)
+        return await saveLog(event.log, openid, db)
       case 'list':
-        return await listLogs(openid, event.limit)
+        return await listLogs(openid, event.limit, db)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -35,7 +35,7 @@ exports.main = async (event) => {
   }
 }
 
-async function saveLog(log = {}, openid) {
+async function saveLog(log = {}, openid, db) {
   const {
     unitIds = [],
     subject = SUBJECTS.ENGLISH,
@@ -82,7 +82,7 @@ async function saveLog(log = {}, openid) {
   return { code: 0, message: '保存成功', data: { _id, ...data } }
 }
 
-async function listLogs(openid, limit = 20) {
+async function listLogs(openid, limit = 20, db) {
   const maxLimit = Math.min(Number(limit) || 20, 100)
 
   // 分页查询，避免单次 100 条限制；最后一页按需取剩余数量，减少传输
@@ -102,3 +102,6 @@ async function listLogs(openid, limit = 20) {
 
   return { code: 0, data: allData }
 }
+
+exports._saveLog = saveLog
+exports._listLogs = listLogs

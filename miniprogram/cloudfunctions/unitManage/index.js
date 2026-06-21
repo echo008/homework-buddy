@@ -10,8 +10,8 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const _ = db.command
 const { ALLOWED_SUBJECTS } = require('../common/constants.js')
+const { paginateQuery } = require('../common/utils.js')
 
 const MAX_NAME_LENGTH = 100
 
@@ -23,13 +23,13 @@ exports.main = async (event) => {
   try {
     switch (action) {
       case 'create':
-        return await createUnit(event.unit, openid)
+        return await createUnit(event.unit, openid, db)
       case 'update':
-        return await updateUnit(event.unit, openid)
+        return await updateUnit(event.unit, openid, db)
       case 'delete':
-        return await deleteUnit(event.unitId, openid)
+        return await deleteUnit(event.unitId, openid, db)
       case 'list':
-        return await listUnits(event.subject, openid)
+        return await listUnits(event.subject, openid, db)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -39,7 +39,7 @@ exports.main = async (event) => {
   }
 }
 
-async function createUnit(unit = {}, openid) {
+async function createUnit(unit = {}, openid, db) {
   const { name, subject, grade = '', semester = '', textbook = '', order = 0 } = unit
 
   if (!name || !name.trim()) {
@@ -71,7 +71,7 @@ async function createUnit(unit = {}, openid) {
   return { code: 0, message: '创建成功', data: { _id, ...data } }
 }
 
-async function updateUnit(unit = {}, openid) {
+async function updateUnit(unit = {}, openid, db) {
   const { _id } = unit
   if (!_id) return { code: 2, message: '缺少单元 ID' }
 
@@ -110,7 +110,7 @@ async function updateUnit(unit = {}, openid) {
   return { code: 0, message: '更新成功' }
 }
 
-async function deleteUnit(unitId, openid) {
+async function deleteUnit(unitId, openid, db) {
   if (!unitId) return { code: 2, message: '缺少单元 ID' }
 
   // 权限校验：仅创建者可删除自己的单元
@@ -122,6 +122,8 @@ async function deleteUnit(unitId, openid) {
   if (current.createdBy !== openid) {
     return { code: 5, message: '无权删除他人的单元' }
   }
+
+  const _ = db.command
 
   // 删除单元下的所有单词，避免产生孤立数据
   const batchLimit = 100
@@ -166,9 +168,11 @@ async function deleteUnit(unitId, openid) {
   return { code: 0, message: '删除成功', data: { removedWords: removed } }
 }
 
-async function listUnits(subject, openid) {
+async function listUnits(subject, openid, db) {
   const where = {}
   if (ALLOWED_SUBJECTS.includes(subject)) where.subject = subject
+
+  const _ = db.command
 
   // 分页查询当前用户创建的单元（避免单次 100 条限制）
   const myUnits = await paginateQuery(
@@ -218,19 +222,8 @@ async function listUnits(subject, openid) {
   return { code: 0, data: merged }
 }
 
-/**
- * 分页查询工具：自动翻页直到取完所有数据
- * @param {Object} queryChain 已组装好 where/orderBy/field 的查询链
- * @param {number} pageSize 每页大小
- * @returns {Promise<Array>}
- */
-async function paginateQuery(queryChain, pageSize = 100) {
-  let allData = []
-  let hasMore = true
-  while (hasMore) {
-    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
-    allData = allData.concat(data)
-    if (data.length < pageSize) hasMore = false
-  }
-  return allData
-}
+// 导出内部函数以便单元测试注入 mock db
+exports._createUnit = createUnit
+exports._updateUnit = updateUnit
+exports._deleteUnit = deleteUnit
+exports._listUnits = listUnits

@@ -15,6 +15,7 @@ const {
   PROMPT_TYPES,
   ANSWER_TYPES
 } = require('../common/constants.js')
+const { paginateQuery, getAccessibleUnitIds } = require('../common/utils.js')
 
 /**
  * Fisher-Yates 洗牌算法，打乱数组顺序（防作弊：避免学生背顺序）
@@ -79,7 +80,7 @@ exports.main = async (event) => {
 
     // 校验用户单元是否在当前用户可访问范围内（自己创建的 + 所在班级共享的）
     if (hasUserUnits) {
-      const accessibleUnitIds = await getAccessibleUnitIds(openid, subject)
+      const accessibleUnitIds = await getAccessibleUnitIds(openid, subject, db, _)
       const invalidUnitIds = unitIds.filter(id => !accessibleUnitIds.has(id))
       if (invalidUnitIds.length > 0) {
         return { code: 5, message: '存在无权访问的单元，请重新选择' }
@@ -115,16 +116,14 @@ exports.main = async (event) => {
       }
     }
 
-    // 3. 确定抽题数量（Min-Max 随机，不超过题库总量）
+    // 2. 确定抽题数量（Min-Max 随机，不超过题库总量）
     const targetCount = Math.min(randomCount(minCount, maxCount), wordList.length)
 
-    // 4. 洗牌后截取目标数量
+    // 3. 洗牌后截取目标数量
     const selectedWords = shuffle(wordList).slice(0, targetCount)
 
-    // 5. 按听写模式组装题目（决定展示什么、要求写什么）
-    const questions = selectedWords.map((item, index) => {
-      return buildQuestion(item, mode, index)
-    })
+    // 4. 按听写模式组装题目（决定展示什么、要求写什么）
+    const questions = selectedWords.map((item, index) => buildQuestion(item, mode, index))
 
     return {
       code: 0,
@@ -147,68 +146,8 @@ exports.main = async (event) => {
 }
 
 /**
- * 获取当前用户可访问的单元ID集合（自己创建的 + 所在班级共享的）
- * @param {string} openid
- * @param {string} subject
- * @returns {Promise<Set<string>>}
- */
-async function getAccessibleUnitIds(openid, subject) {
-  const where = {}
-  if (ALLOWED_SUBJECTS.includes(subject)) where.subject = subject
-
-  // 自己创建的单元（分页）
-  const myUnits = await paginateQuery(
-    db.collection('units')
-      .where({ ...where, createdBy: openid })
-      .field({ _id: true })
-  )
-
-  // 所在班级（分页）
-  const myClasses = await paginateQuery(
-    db.collection('classes')
-      .where(_.or([{ createdBy: openid }, { members: openid }]))
-      .field({ sharedUnitIds: true })
-  )
-
-  const sharedIds = new Set()
-  myClasses.forEach(cls => {
-    (cls.sharedUnitIds || []).forEach(id => sharedIds.add(id))
-  })
-
-  let sharedUnits = []
-  if (sharedIds.size > 0) {
-    sharedUnits = await paginateQuery(
-      db.collection('units')
-        .where({ ...where, _id: _.in(Array.from(sharedIds)) })
-        .field({ _id: true })
-    )
-  }
-
-  const idSet = new Set()
-  myUnits.forEach(u => idSet.add(u._id))
-  sharedUnits.forEach(u => idSet.add(u._id))
-  return idSet
-}
-
-/**
- * 分页查询工具：自动翻页直到取完所有数据
- * @param {Object} queryChain 已组装好 where/field 的查询链
- * @param {number} pageSize 每页大小
- * @returns {Promise<Array>}
- */
-async function paginateQuery(queryChain, pageSize = 100) {
-  let allData = []
-  let hasMore = true
-  while (hasMore) {
-    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
-    allData = allData.concat(data)
-    if (data.length < pageSize) hasMore = false
-  }
-  return allData
-}
-
-/**
  * 根据听写模式组装单道题目
+ * 返回对象同时保留原始词信息（word/meaning/pinyin/subject），便于重测与历史回放
  * @param {Object} word 单词文档
  * @param {string} mode 听写模式
  * @param {number} index 序号
@@ -218,12 +157,17 @@ function buildQuestion(word, mode, index) {
     index: index + 1,
     wordId: word._id,
     unitId: word.unitId,
-    audioUrl: word.audioUrl || ''
+    word: word.word,
+    meaning: word.meaning || '',
+    pinyin: word.pinyin || '',
+    subject: word.subject,
+    audioUrl: word.audioUrl || '',
+    mode
   }
 
   switch (mode) {
     case MODES.CN2EN:
-      // 纯中文 -> 默写英文
+      // 看中文释义 -> 默写英文
       return {
         ...base,
         prompt: word.meaning,
@@ -232,31 +176,31 @@ function buildQuestion(word, mode, index) {
         answerType: ANSWER_TYPES.ENGLISH
       }
     case MODES.PINYIN2HANZI:
-      // 看拼音 -> 写汉字（语文专用）
+      // 看拼音 -> 写汉字（语文专用，必须有拼音）
       return {
         ...base,
-        prompt: word.pinyin || word.word,
+        prompt: word.pinyin || '',
         promptType: PROMPT_TYPES.PINYIN,
         answer: word.word,
         answerType: ANSWER_TYPES.CHINESE
       }
     case MODES.HANZI2PINYIN:
-      // 写拼音 -> 汉字（语文专用）
+      // 看汉字 -> 写拼音（语文专用，必须有拼音）
       return {
         ...base,
         prompt: word.word,
         promptType: PROMPT_TYPES.CHINESE,
-        answer: word.pinyin || word.word,
+        answer: word.pinyin || '',
         answerType: ANSWER_TYPES.PINYIN
       }
     case MODES.EN2CN:
     default:
-      // 纯英文 -> 默写中文
+      // 听/看英文 -> 默写中文
       return {
         ...base,
-        prompt: word.word,        // 播报/展示英文
+        prompt: word.word,
         promptType: PROMPT_TYPES.ENGLISH,
-        answer: word.meaning,     // 标准答案：中文
+        answer: word.meaning,
         answerType: ANSWER_TYPES.CHINESE
       }
   }

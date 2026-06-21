@@ -98,16 +98,7 @@ Page({
       url: `/pages/dictation/dictation?mode=${encodeURIComponent(mode)}&subject=${encodeURIComponent(subject)}&interval=${interval}&min=${min}&max=${max}`,
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
-          questions: this.data.wrongWords.map((w, i) => ({
-            index: i + 1,
-            wordId: w.wordId,
-            unitId: '',
-            audioUrl: w.audioUrl || '',
-            prompt: w.word,
-            promptType: w.promptType || PROMPT_TYPES.ENGLISH,
-            answer: w.correctAnswer,
-            answerType: w.answerType || ANSWER_TYPES.CHINESE
-          })),
+          questions: this.data.wrongWords.map((w, i) => rebuildQuestionFromAnswer(w, i + 1, mode)),
           total: this.data.wrongWords.length,
           unitIds: unitIds || [],
           mode,
@@ -132,3 +123,50 @@ Page({
     wx.reLaunch({ url: '/pages/index/index' })
   }
 })
+
+/**
+ * 将错题记录还原为 dictation 页可用的题目对象。
+ * 兼容新结构（保存了 prompt/answer/word/meaning/pinyin）与旧结构（仅 word/promptType/answerType/correctAnswer）。
+ * @param {Object} w 错题记录
+ * @param {number} index 新序号
+ * @param {string} fallbackMode 当旧数据没有 mode 时的回退
+ * @returns {Object}
+ */
+function rebuildQuestionFromAnswer(w, index, fallbackMode) {
+  const mode = w.mode || fallbackMode
+  // 新结构：已经完整保存了 prompt / answer / 原始词信息
+  if (w.prompt !== undefined && w.answer !== undefined) {
+    return {
+      index,
+      wordId: w.wordId,
+      unitId: w.unitId || '',
+      word: w.word,
+      meaning: w.meaning || '',
+      pinyin: w.pinyin || '',
+      subject: w.subject,
+      audioUrl: w.audioUrl || '',
+      mode,
+      prompt: w.prompt,
+      promptType: w.promptType,
+      answer: w.answer,
+      answerType: w.answerType
+    }
+  }
+
+  // 旧结构兼容：word 字段实际存储的是 prompt
+  return {
+    index,
+    wordId: w.wordId,
+    unitId: '',
+    word: w.word,
+    meaning: '',
+    pinyin: '',
+    subject: '',
+    audioUrl: w.audioUrl || '',
+    mode,
+    prompt: w.word,
+    promptType: w.promptType || PROMPT_TYPES.ENGLISH,
+    answer: w.correctAnswer,
+    answerType: w.answerType || ANSWER_TYPES.CHINESE
+  }
+}

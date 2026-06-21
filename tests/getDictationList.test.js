@@ -77,8 +77,15 @@ describe('getDictationList 听写引擎', () => {
     expect(res.data.words.length).toBe(2)
     expect(res.data.words[0]).toHaveProperty('prompt')
     expect(res.data.words[0]).toHaveProperty('answer')
-    expect(res.data.words[0].promptType).toBe('english')
-    expect(res.data.words[0].answerType).toBe('chinese')
+    expect(res.data.words[0]).toMatchObject({
+      wordId: expect.any(String),
+      word: expect.any(String),
+      meaning: expect.any(String),
+      subject: 'english',
+      mode: 'en2cn',
+      promptType: 'english',
+      answerType: 'chinese'
+    })
   })
 
   test('按课次筛选', async () => {

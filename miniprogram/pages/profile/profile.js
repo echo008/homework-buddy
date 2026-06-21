@@ -141,17 +141,7 @@ Page({
       toast('本次没有错题')
       return
     }
-    // 历史记录中的错题字段为 word，需转换为 dictation 需要的 prompt
-    const questions = wrongWords.map((w, i) => ({
-      index: i + 1,
-      wordId: w.wordId,
-      unitId: '',
-      audioUrl: w.audioUrl || '',
-      prompt: w.word,
-      promptType: w.promptType || PROMPT_TYPES.ENGLISH,
-      answer: w.correctAnswer,
-      answerType: w.answerType || ANSWER_TYPES.CHINESE
-    }))
+    const questions = wrongWords.map((w, i) => rebuildQuestionFromAnswer(w, i + 1, currentLog.mode))
     const wordCountRange = currentLog.wordCountRange || { min: questions.length, max: questions.length }
     this.setData({ showLogDetail: false })
     wx.navigateTo({
@@ -168,3 +158,47 @@ Page({
     })
   }
 })
+
+/**
+ * 将错题记录还原为 dictation 页可用的题目对象（与 result.js 保持一致）。
+ * @param {Object} w 错题记录
+ * @param {number} index 新序号
+ * @param {string} fallbackMode 当旧数据没有 mode 时的回退
+ * @returns {Object}
+ */
+function rebuildQuestionFromAnswer(w, index, fallbackMode) {
+  const mode = w.mode || fallbackMode
+  if (w.prompt !== undefined && w.answer !== undefined) {
+    return {
+      index,
+      wordId: w.wordId,
+      unitId: w.unitId || '',
+      word: w.word,
+      meaning: w.meaning || '',
+      pinyin: w.pinyin || '',
+      subject: w.subject,
+      audioUrl: w.audioUrl || '',
+      mode,
+      prompt: w.prompt,
+      promptType: w.promptType,
+      answer: w.answer,
+      answerType: w.answerType
+    }
+  }
+
+  return {
+    index,
+    wordId: w.wordId,
+    unitId: '',
+    word: w.word,
+    meaning: '',
+    pinyin: '',
+    subject: '',
+    audioUrl: w.audioUrl || '',
+    mode,
+    prompt: w.word,
+    promptType: w.promptType || PROMPT_TYPES.ENGLISH,
+    answer: w.correctAnswer,
+    answerType: w.answerType || ANSWER_TYPES.CHINESE
+  }
+}

@@ -12,9 +12,9 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const _ = db.command
-
 const { ALLOWED_SUBJECTS } = require('../common/constants.js')
+const { paginateQuery } = require('../common/utils.js')
+
 const MAX_MEMBERS = 200
 
 exports.main = async (event) => {
@@ -25,21 +25,21 @@ exports.main = async (event) => {
   try {
     switch (action) {
       case 'create':
-        return await createClass(event.name, event.subject, openid)
+        return await createClass(event.name, event.subject, openid, db)
       case 'join':
-        return await joinClass(event.code, openid)
+        return await joinClass(event.code, openid, db)
       case 'get':
-        return await getClassDetail(event.classId, openid)
+        return await getClassDetail(event.classId, openid, db)
       case 'myClasses':
-        return await getMyClasses(openid)
+        return await getMyClasses(openid, db)
       case 'shareUnit':
-        return await shareUnit(event.classId, event.unitId, openid)
+        return await shareUnit(event.classId, event.unitId, openid, db)
       case 'unshareUnit':
-        return await unshareUnit(event.classId, event.unitId, openid)
+        return await unshareUnit(event.classId, event.unitId, openid, db)
       case 'leave':
-        return await leaveClass(event.classId, openid)
+        return await leaveClass(event.classId, openid, db)
       case 'dismiss':
-        return await dismissClass(event.classId, openid)
+        return await dismissClass(event.classId, openid, db)
       default:
         return { code: 1, message: '未知操作类型' }
     }
@@ -49,7 +49,7 @@ exports.main = async (event) => {
   }
 }
 
-async function createClass(name, subject, openid) {
+async function createClass(name, subject, openid, db) {
   if (!name || !name.trim()) {
     return { code: 2, message: '班级名称不能为空' }
   }
@@ -57,7 +57,7 @@ async function createClass(name, subject, openid) {
     return { code: 2, message: '学科类型不正确' }
   }
 
-  const code = await generateUniqueCode()
+  const code = await generateUniqueCode(db)
   const now = new Date().toISOString()
   const data = {
     name: name.trim(),
@@ -74,7 +74,7 @@ async function createClass(name, subject, openid) {
   return { code: 0, message: '班级创建成功', data: { _id, ...data } }
 }
 
-async function joinClass(code, openid) {
+async function joinClass(code, openid, db) {
   if (!code || !code.trim()) {
     return { code: 2, message: '班级码不能为空' }
   }
@@ -99,6 +99,7 @@ async function joinClass(code, openid) {
     return { code: 4, message: '班级人数已满' }
   }
 
+  const _ = db.command
   await db.collection('classes').doc(cls._id).update({
     data: {
       members: _.push(openid),
@@ -109,7 +110,7 @@ async function joinClass(code, openid) {
   return { code: 0, message: '加入班级成功', data: { classId: cls._id } }
 }
 
-async function getClassDetail(classId, openid) {
+async function getClassDetail(classId, openid, db) {
   if (!classId) return { code: 2, message: '缺少班级 ID' }
 
   const { data } = await db.collection('classes').doc(classId).get()
@@ -122,6 +123,8 @@ async function getClassDetail(classId, openid) {
   if (!members.includes(openid) && data.createdBy !== openid) {
     return { code: 5, message: '你不在该班级中' }
   }
+
+  const _ = db.command
 
   // 共享单元列表（分页查询）
   let sharedUnits = []
@@ -143,7 +146,9 @@ async function getClassDetail(classId, openid) {
   }
 }
 
-async function getMyClasses(openid) {
+async function getMyClasses(openid, db) {
+  const _ = db.command
+
   // members 是数组，用 _.or 匹配；分页查询避免 100 条限制
   const data = await paginateQuery(
     db.collection('classes')
@@ -157,24 +162,7 @@ async function getMyClasses(openid) {
   return { code: 0, data }
 }
 
-/**
- * 分页查询工具：自动翻页直到取完所有数据
- * @param {Object} queryChain 已组装好 where/orderBy/field 的查询链
- * @param {number} pageSize 每页大小
- * @returns {Promise<Array>}
- */
-async function paginateQuery(queryChain, pageSize = 100) {
-  let allData = []
-  let hasMore = true
-  while (hasMore) {
-    const { data } = await queryChain.skip(allData.length).limit(pageSize).get()
-    allData = allData.concat(data)
-    if (data.length < pageSize) hasMore = false
-  }
-  return allData
-}
-
-async function shareUnit(classId, unitId, openid) {
+async function shareUnit(classId, unitId, openid, db) {
   if (!classId || !unitId) {
     return { code: 2, message: '缺少班级 ID 或单元 ID' }
   }
@@ -203,6 +191,7 @@ async function shareUnit(classId, unitId, openid) {
     return { code: 0, message: '该单元已在共享列表中' }
   }
 
+  const _ = db.command
   await db.collection('classes').doc(classId).update({
     data: {
       sharedUnitIds: _.push(unitId),
@@ -213,7 +202,7 @@ async function shareUnit(classId, unitId, openid) {
   return { code: 0, message: '共享成功' }
 }
 
-async function unshareUnit(classId, unitId, openid) {
+async function unshareUnit(classId, unitId, openid, db) {
   if (!classId || !unitId) {
     return { code: 2, message: '缺少班级 ID 或单元 ID' }
   }
@@ -231,6 +220,7 @@ async function unshareUnit(classId, unitId, openid) {
     return { code: 5, message: '无权取消共享' }
   }
 
+  const _ = db.command
   await db.collection('classes').doc(classId).update({
     data: {
       sharedUnitIds: _.pull(unitId),
@@ -242,7 +232,7 @@ async function unshareUnit(classId, unitId, openid) {
 }
 
 // 退出班级
-async function leaveClass(classId, openid) {
+async function leaveClass(classId, openid, db) {
   if (!classId) return { code: 2, message: '缺少班级 ID' }
 
   const clsRes = await db.collection('classes').doc(classId).get()
@@ -259,6 +249,7 @@ async function leaveClass(classId, openid) {
     return { code: 0, message: '你已不在该班级中' }
   }
 
+  const _ = db.command
   await db.collection('classes').doc(classId).update({
     data: {
       members: _.pull(openid),
@@ -270,7 +261,7 @@ async function leaveClass(classId, openid) {
 }
 
 // 解散班级（仅创建者可操作，删除班级记录，不影响单元与单词）
-async function dismissClass(classId, openid) {
+async function dismissClass(classId, openid, db) {
   if (!classId) return { code: 2, message: '缺少班级 ID' }
 
   const clsRes = await db.collection('classes').doc(classId).get()
@@ -286,7 +277,7 @@ async function dismissClass(classId, openid) {
   return { code: 0, message: '班级已解散' }
 }
 
-async function generateUniqueCode() {
+async function generateUniqueCode(db) {
   let code = ''
   let exists = true
   let attempts = 0
@@ -302,3 +293,14 @@ async function generateUniqueCode() {
   }
   return code
 }
+
+// 导出内部函数以便单元测试注入 mock db
+exports._createClass = createClass
+exports._joinClass = joinClass
+exports._getClassDetail = getClassDetail
+exports._getMyClasses = getMyClasses
+exports._shareUnit = shareUnit
+exports._unshareUnit = unshareUnit
+exports._leaveClass = leaveClass
+exports._dismissClass = dismissClass
+exports._generateUniqueCode = generateUniqueCode
