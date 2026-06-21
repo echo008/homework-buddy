@@ -22,7 +22,9 @@ Page({
     ttsUnavailable: false,
     submitting: false, // 防快速点击
     inputFocus: true,  // 输入框聚焦控制，切题时重新聚焦
-    finished: false    // 是否已完成听写，用于从结果页返回时不再自动播放
+    finished: false,   // 是否已完成听写，用于从结果页返回时不再自动播放
+    isPinyinPrompt: false,
+    promptTypeLabel: ''
   },
 
   countdownTimer: null,
@@ -69,7 +71,7 @@ Page({
           dataReady: true
         }, () => {
           // setData 完成后再操作音频，避免读到旧数据
-          this.updateAudioFlag()
+          this.renderQuestion()
           this.startCountdown()
         })
       })
@@ -154,11 +156,27 @@ Page({
     }
   },
 
-  updateAudioFlag() {
+  renderQuestion() {
     const { questions, currentIndex } = this.data
     const current = questions[currentIndex]
+    if (!current) return
+
+    const isPinyinPrompt = current.promptType === PROMPT_TYPES.PINYIN
+    let promptTypeLabel = ''
+    if (isPinyinPrompt) {
+      promptTypeLabel = '看拼音写汉字'
+    } else if (current.answerType === ANSWER_TYPES.PINYIN) {
+      promptTypeLabel = '写出拼音'
+    } else if (current.promptType === PROMPT_TYPES.ENGLISH) {
+      promptTypeLabel = '听写英文'
+    } else if (current.promptType === PROMPT_TYPES.CHINESE && current.answerType === ANSWER_TYPES.ENGLISH) {
+      promptTypeLabel = '中译英'
+    }
+
     this.setData({
-      hasCustomAudio: !!(current && current.audioUrl)
+      hasCustomAudio: !!current.audioUrl,
+      isPinyinPrompt,
+      promptTypeLabel
     })
   },
 
@@ -271,7 +289,7 @@ Page({
       this.setData({ currentIndex: nextIndex, submitting: false, inputFocus: false })
       // 下一帧重新聚焦
       setTimeout(() => this.setData({ inputFocus: true }), 50)
-      this.updateAudioFlag()
+      this.renderQuestion()
       this.startCountdown()
     } else {
       // finish 内部会跳转，无需重置 submitting

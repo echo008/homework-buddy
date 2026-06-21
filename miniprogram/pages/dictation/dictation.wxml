@@ -17,13 +17,13 @@
   <!-- 题目区 -->
   <view class="card question-card" wx:if="{{questions.length > 0}}">
     <!-- 拼音模式：大字显示拼音，不依赖语音 -->
-    <view class="question-prompt" wx:if="{{questions[currentIndex].promptType === 'pinyin'}}">{{questions[currentIndex].prompt}}</view>
+    <view class="question-prompt" wx:if="{{isPinyinPrompt}}">{{questions[currentIndex].prompt}}</view>
     <!-- 英文/中文模式：正常显示（语音播报为主） -->
     <view class="question-prompt" wx:else>{{questions[currentIndex].prompt}}</view>
 
     <view class="question-tags">
       <text class="tag tag-primary" wx:if="{{hasCustomAudio}}">自定义读音</text>
-      <text class="tag tag-accent" wx:elif="{{questions[currentIndex].promptType === 'pinyin'}}">看拼音写汉字</text>
+      <text class="tag tag-accent" wx:elif="{{promptTypeLabel}}">{{promptTypeLabel}}</text>
       <text class="tag tag-accent" wx:else>AI 朗读</text>
     </view>
 
