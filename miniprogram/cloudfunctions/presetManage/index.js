@@ -87,7 +87,7 @@ exports.main = async (event) => {
       case 'listWordsNeedAudio':
         return await listWordsNeedAudio(event)
       case 'saveAudioUrl':
-        return await saveAudioUrl(event)
+        return await saveAudioUrl(event, openid)
       case 'seed':
         // ⚠️ 仅用于首次部署时初始化示例数据；force=true 可清空并重新导入
         return await seedPresetData(event.force, openid)
@@ -325,12 +325,18 @@ async function listWordsNeedAudio({ unitId, limit = 50 }) {
  * @param {string} param.wordId 单词文档 ID
  * @param {string} param.audioUrl 云存储文件 ID 或 https 链接
  */
-async function saveAudioUrl({ wordId, audioUrl }) {
+async function saveAudioUrl({ wordId, audioUrl }, openid) {
   if (!wordId) {
     return { code: 2, message: '缺少单词 ID' }
   }
   if (typeof audioUrl !== 'string' || !audioUrl.trim()) {
     return { code: 2, message: '音频链接不能为空' }
+  }
+
+  // 若配置了预置内容管理员，则仅允许管理员更新音频链接
+  const adminOpenid = process.env.PRESET_ADMIN_OPENID || ''
+  if (adminOpenid && adminOpenid !== openid) {
+    return { code: 5, message: '无权更新预置音频' }
   }
 
   await db.collection('presetWords').doc(wordId).update({

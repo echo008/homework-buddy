@@ -69,7 +69,7 @@ describe('getDictationList 听写引擎', () => {
     const res = await getDictationList.main({
       unitIds: ['u1'],
       subject: 'english',
-      wordCountRange: { min: 1, max: 10 },
+      wordCountRange: { min: 2, max: 2 },
       mode: 'en2cn'
     })
 
@@ -107,7 +107,7 @@ describe('getDictationList 听写引擎', () => {
     const res = await getDictationList.main({
       unitIds: ['u1'],
       subject: 'english',
-      wordCountRange: { min: 1, max: 10 },
+      wordCountRange: { min: 1, max: 1 },
       mode: 'cn2en'
     })
 
