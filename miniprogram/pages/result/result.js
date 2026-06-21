@@ -22,7 +22,7 @@ Page({
   onLoad() {
     const eventChannel = this.getOpenerEventChannel()
     if (!eventChannel || !eventChannel.on) {
-      wx.showToast({ title: '数据加载异常', icon: 'none' })
+      toast('数据加载异常')
       return
     }
     eventChannel.on('resultData', (data) => {
@@ -81,7 +81,7 @@ Page({
     } catch (err) {
       console.error('保存听写记录失败:', err)
       // 记录保存失败不影响用户查看结果，但需提示用户
-      wx.showToast({ title: '成绩记录未保存，可继续查看', icon: 'none', duration: 2500 })
+      toast('成绩记录未保存，可继续查看')
     }
   },
 
@@ -114,7 +114,7 @@ Page({
       },
       fail: (err) => {
         console.error('跳转听写页失败:', err)
-        wx.showToast({ title: '页面跳转失败，请重试', icon: 'none' })
+        toast('页面跳转失败，请重试')
       }
     })
   },

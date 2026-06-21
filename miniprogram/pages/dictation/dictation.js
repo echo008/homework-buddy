@@ -1,6 +1,7 @@
 // pages/dictation/dictation.js - 听写进行页（核心）
 const { speak, stop: stopTTS, resolveLang } = require('../../utils/tts.js')
 const { MODES, SUBJECTS, PROMPT_TYPES, ANSWER_TYPES } = require('../../utils/constants.js')
+const { toast } = require('../../utils/ui.js')
 
 Page({
   data: {
@@ -53,7 +54,7 @@ Page({
         }
         const questions = data.questions || []
         if (questions.length === 0) {
-          wx.showToast({ title: '没有题目数据', icon: 'none' })
+          toast('没有题目数据')
           setTimeout(() => wx.navigateBack(), 1500)
           return
         }
@@ -76,13 +77,13 @@ Page({
       // 超时保护：3 秒内未收到数据则提示并返回
       this.dataTimeout = setTimeout(() => {
         if (!this.data.dataReady) {
-          wx.showToast({ title: '数据加载超时，请重试', icon: 'none' })
+          toast('数据加载超时，请重试')
           setTimeout(() => wx.navigateBack(), 1500)
         }
       }, 3000)
     } else {
       // 无 eventChannel（如直接进入页面），提示并返回
-      wx.showToast({ title: '请从首页开始听写', icon: 'none' })
+      toast('请从首页开始听写')
       setTimeout(() => wx.navigateBack(), 1500)
     }
   },
@@ -322,7 +323,7 @@ Page({
         console.error('跳转结果页失败:', err)
         // 页面栈满或其他原因导致跳转失败，恢复状态并提示
         this.setData({ finished: false, submitting: false })
-        wx.showToast({ title: '提交失败，请重试', icon: 'none' })
+        toast('提交失败，请重试')
       }
     })
   }

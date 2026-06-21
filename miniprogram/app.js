@@ -1,14 +1,12 @@
 // app.js - 智听 · Homework Buddy 小程序入口
+const { toast, modal } = require('./utils/ui.js')
+
 App({
   onLaunch() {
     // 初始化云开发环境
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力')
-      wx.showModal({
-        title: '微信版本过低',
-        content: '请升级微信到最新版本后使用本小程序。',
-        showCancel: false
-      })
+      modal('微信版本过低', '请升级微信到最新版本后使用本小程序。', { showCancel: false })
       return
     }
     // ⚠️ 重要：请将下方 env 替换为你的真实云开发环境 ID
@@ -24,7 +22,7 @@ App({
     // 监听网络状态变化，离线时提示用户
     wx.onNetworkStatusChange((res) => {
       if (!res.isConnected) {
-        wx.showToast({ title: '网络已断开，部分功能不可用', icon: 'none', duration: 2500 })
+        toast('网络已断开，部分功能不可用')
       }
     })
   },
