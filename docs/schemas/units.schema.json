@@ -69,6 +69,27 @@
     "createdBy": {
       "type": "string",
       "description": "创建者 openid"
+    },
+    "isPreset": {
+      "type": "boolean",
+      "description": "是否为预置内容",
+      "default": false
+    },
+    "textbookId": {
+      "type": "string",
+      "description": "所属教材ID，预置单元使用"
+    },
+    "gradeLevel": {
+      "type": "string",
+      "description": "学段：primary / junior / senior / national"
+    },
+    "version": {
+      "type": "string",
+      "description": "教材版本(如 人教版 / 外研版)"
+    },
+    "contentType": {
+      "type": "string",
+      "description": "内容类型(如 words / poetry / phrases)"
     }
   },
   "additionalProperties": false

@@ -29,8 +29,8 @@
     },
     "mode": {
       "type": "string",
-      "enum": ["en2cn", "cn2en", "pinyin2hanzi"],
-      "description": "听写模式：en2cn=英译中，cn2en=中译英，pinyin2hanzi=看拼音写汉字"
+      "enum": ["en2cn", "cn2en", "pinyin2hanzi", "hanzi2pinyin"],
+      "description": "听写模式：en2cn=英译中，cn2en=中译英，pinyin2hanzi=看拼音写汉字，hanzi2pinyin=写拼音"
     },
     "wordCountRange": {
       "type": "object",
@@ -84,6 +84,11 @@
       "description": "本次得分(0-100)",
       "default": 0
     },
+    "questions": {
+      "type": "array",
+      "description": "本次听写完整题目列表，用于错题重测与历史回放",
+      "default": []
+    },
     "wrongWords": {
       "type": "array",
       "description": "错题明细列表，用于错题本与一键重测",
@@ -125,6 +130,11 @@
       "type": "string",
       "format": "date-time",
       "description": "听写时间，ISO 8601 格式"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "更新时间，ISO 8601 格式"
     }
   },
   "additionalProperties": false
