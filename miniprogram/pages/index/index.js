@@ -36,7 +36,8 @@ Page({
         { value: MODES.CN2EN, label: MODE_LABELS[MODES.CN2EN] }
       ],
       [SUBJECTS.CHINESE]: [
-        { value: MODES.PINYIN2HANZI, label: MODE_LABELS[MODES.PINYIN2HANZI] }
+        { value: MODES.PINYIN2HANZI, label: MODE_LABELS[MODES.PINYIN2HANZI] },
+        { value: MODES.HANZI2PINYIN, label: MODE_LABELS[MODES.HANZI2PINYIN] }
       ]
     },
 

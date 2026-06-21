@@ -116,15 +116,17 @@ Page({
       toast('该记录没有保存题目')
       return
     }
+    const wordCountRange = currentLog.wordCountRange || { min: questions.length, max: questions.length }
     this.setData({ showLogDetail: false })
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5&min=${wordCountRange.min}&max=${wordCountRange.max}`,
       success: (res) => {
         res.eventChannel.emit('dictationData', {
           questions,
           total: questions.length,
           unitIds: [],
-          source: 'log'
+          source: 'log',
+          wordCountRange
         })
       }
     })
@@ -150,15 +152,17 @@ Page({
       answer: w.correctAnswer,
       answerType: w.answerType || ANSWER_TYPES.CHINESE
     }))
+    const wordCountRange = currentLog.wordCountRange || { min: questions.length, max: questions.length }
     this.setData({ showLogDetail: false })
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(currentLog.mode)}&subject=${encodeURIComponent(currentLog.subject)}&interval=5&min=${wordCountRange.min}&max=${wordCountRange.max}`,
       success: (res) => {
         res.eventChannel.emit('dictationData', {
           questions,
           total: questions.length,
           unitIds: [],
-          source: 'log'
+          source: 'log',
+          wordCountRange
         })
       }
     })

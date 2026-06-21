@@ -93,7 +93,7 @@ async function joinClass(code, openid) {
     return { code: 0, message: '你已在班级中', data: { classId: cls._id } }
   }
 
-  // 班级人数上限保护
+  // 班级人数上限保护（高并发下仍可能瞬时超限，云数据库 push 为原子操作但非条件更新；200 人上限留有缓冲，日常场景足够）
   const memberCount = (cls.members || []).length
   if (memberCount >= MAX_MEMBERS) {
     return { code: 4, message: '班级人数已满' }

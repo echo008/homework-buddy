@@ -49,7 +49,7 @@ exports.main = async (event) => {
     lessons = [],      // 所选课次列表（可选，空表示不限课次）
     subject = SUBJECTS.ENGLISH, // 学科：english / chinese
     wordCountRange = { min: 10, max: 15 }, // 抽题数量上下限
-    mode = MODES.EN2CN     // 听写模式：en2cn / cn2en / pinyin2hanzi
+    mode = MODES.EN2CN     // 听写模式：en2cn / cn2en / pinyin2hanzi / hanzi2pinyin
   } = event
 
   const wxContext = cloud.getWXContext()

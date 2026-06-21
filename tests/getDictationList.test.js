@@ -133,6 +133,25 @@ describe('getDictationList 听写引擎', () => {
     expect(res.data.words[0].answerType).toBe('chinese')
   })
 
+  test('hanzi2pinyin 模式题目结构正确', async () => {
+    db.get.mockResolvedValueOnce({ data: [{ _id: 'u3', createdBy: 'test_openid' }] }) // units
+    db.get.mockResolvedValueOnce({ data: [] }) // classes
+    db.get.mockResolvedValueOnce({ data: allWords.filter(w => w.subject === 'chinese') }) // words
+
+    const res = await getDictationList.main({
+      unitIds: ['u3'],
+      subject: 'chinese',
+      wordCountRange: { min: 1, max: 1 },
+      mode: 'hanzi2pinyin'
+    })
+
+    expect(res.code).toBe(0)
+    expect(res.data.words[0].promptType).toBe('chinese')
+    expect(res.data.words[0].answerType).toBe('pinyin')
+    expect(res.data.words[0].prompt).toBe('鹏')
+    expect(res.data.words[0].answer).toBe('péng')
+  })
+
   test('抽题数量不超过题库总量', async () => {
     db.get.mockResolvedValueOnce({ data: [{ _id: 'u1', createdBy: 'test_openid' }] }) // units
     db.get.mockResolvedValueOnce({ data: [] }) // classes

@@ -85,15 +85,17 @@ Page({
     }
   },
 
-  // 重测错题：保留原始 mode / subject / interval，避免配置丢失
+  // 重测错题：保留原始 mode / subject / interval / wordCountRange，避免配置丢失
   onRetryWrong() {
     if (this.data.wrongWords.length === 0) {
       toast('没有错题，棒极了！')
       return
     }
-    const { mode, subject, unitIds, interval } = this.data
+    const { mode, subject, unitIds, interval, wordCountRange } = this.data
+    const min = wordCountRange.min || this.data.wrongWords.length
+    const max = wordCountRange.max || this.data.wrongWords.length
     wx.navigateTo({
-      url: `/pages/dictation/dictation?mode=${encodeURIComponent(mode)}&subject=${encodeURIComponent(subject)}&interval=${interval}`,
+      url: `/pages/dictation/dictation?mode=${encodeURIComponent(mode)}&subject=${encodeURIComponent(subject)}&interval=${interval}&min=${min}&max=${max}`,
       success: (nav) => {
         nav.eventChannel.emit('dictationData', {
           questions: this.data.wrongWords.map((w, i) => ({
@@ -109,7 +111,8 @@ Page({
           total: this.data.wrongWords.length,
           unitIds: unitIds || [],
           mode,
-          subject
+          subject,
+          wordCountRange
         })
       },
       fail: (err) => {

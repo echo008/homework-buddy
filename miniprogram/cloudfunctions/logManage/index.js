@@ -83,13 +83,13 @@ async function saveLog(log = {}, openid) {
 }
 
 async function listLogs(openid, limit = 20) {
-  const pageSize = 100
   const maxLimit = Math.min(Number(limit) || 20, 100)
 
-  // 分页查询，避免单次 100 条限制
+  // 分页查询，避免单次 100 条限制；最后一页按需取剩余数量，减少传输
   let allData = []
   let hasMore = true
   while (hasMore && allData.length < maxLimit) {
+    const pageSize = Math.min(100, maxLimit - allData.length)
     const { data } = await db.collection('userLogs')
       .where({ openid })
       .orderBy('createdAt', 'desc')
@@ -98,11 +98,6 @@ async function listLogs(openid, limit = 20) {
       .get()
     allData = allData.concat(data)
     if (data.length < pageSize) hasMore = false
-  }
-
-  // 按前端要求截断
-  if (allData.length > maxLimit) {
-    allData = allData.slice(0, maxLimit)
   }
 
   return { code: 0, data: allData }
