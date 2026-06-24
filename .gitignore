@@ -1,7 +1,9 @@
 node_modules/
-.DS_Store
+data/
+uploads/
+dist/
+api/dist/
+.env
+.env.local
 *.log
-.vscode/
-.idea/
-coverage/
-miniprogram_npm/
+.DS_Store
