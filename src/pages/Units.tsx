@@ -1,344 +1,150 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight, MoreHorizontal, Share2, Pencil, Trash2, Loader2 } from 'lucide-react'
-import Layout from '@/components/Layout'
-import Loading from '@/components/Loading'
-import EmptyState from '@/components/EmptyState'
-import Modal from '@/components/Modal'
-import { unitApi } from '@/api'
-import { useUserStore } from '@/store/userStore'
-import { toast, cn } from '@/lib/utils'
-import { SUBJECTS, SUBJECT_LABELS } from '@shared/constants'
-import type { Subject, Unit } from '@shared/types'
+import { storage, type Unit } from '@/lib/storage'
+import { SUBJECTS } from '@shared/constants'
 
 export default function Units() {
   const navigate = useNavigate()
-  const { user } = useUserStore()
-  const [subject, setSubject] = useState<Subject>(SUBJECTS.ENGLISH)
   const [units, setUnits] = useState<Unit[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    grade: '',
-    textbook: '',
-    order: 0
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const nameInputRef = useRef<HTMLInputElement>(null)
+  const [subject, setSubject] = useState<'english' | 'chinese'>(SUBJECTS.ENGLISH)
+  const [showModal, setShowModal] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
 
-  useEffect(() => {
+  useEffect(() => { loadUnits() }, [subject])
+
+  function loadUnits() {
+    setUnits(storage.getUnits().filter(u => u.subject === subject))
+  }
+
+  function createUnit() {
+    if (!newName.trim()) return
+    storage.createUnit({ name: newName.trim(), subject, description: newDesc.trim() || undefined })
+    setNewName('')
+    setNewDesc('')
+    setShowModal(false)
     loadUnits()
-  }, [subject])
-
-  useEffect(() => {
-    if (showCreateModal) {
-      setFormData({ name: '', grade: '', textbook: '', order: 0 })
-      setTimeout(() => nameInputRef.current?.focus(), 300)
-    }
-  }, [showCreateModal])
-
-  useEffect(() => {
-    if (editingUnit) {
-      setFormData({
-        name: editingUnit.name,
-        grade: editingUnit.grade || '',
-        textbook: editingUnit.textbook || '',
-        order: editingUnit.order || 0
-      })
-      setTimeout(() => nameInputRef.current?.focus(), 300)
-    }
-  }, [editingUnit])
-
-  async function loadUnits() {
-    setLoading(true)
-    try {
-      const res = await unitApi.list(subject)
-      if (res.data) {
-        setUnits(res.data)
-      }
-    } catch {
-      toast.error('加载单元列表失败')
-    } finally {
-      setLoading(false)
-    }
   }
 
-  function openCreateModal() {
-    setShowCreateModal(true)
-  }
-
-  function openEditModal(unit: Unit, e: React.MouseEvent) {
-    e.stopPropagation()
-    setMenuOpenId(null)
-    setEditingUnit(unit)
-  }
-
-  function closeModals() {
-    setShowCreateModal(false)
-    setEditingUnit(null)
-  }
-
-  async function handleSubmit() {
-    if (!formData.name.trim()) {
-      toast.warning('请输入单元名称')
-      return
-    }
-    setSubmitting(true)
-    try {
-      if (editingUnit) {
-        await unitApi.update(editingUnit.id, {
-          name: formData.name.trim(),
-          grade: formData.grade.trim(),
-          textbook: formData.textbook.trim(),
-          order: formData.order
-        })
-        toast.success('单元更新成功')
-      } else {
-        await unitApi.create({
-          name: formData.name.trim(),
-          subject,
-          grade: formData.grade.trim(),
-          textbook: formData.textbook.trim(),
-          order: formData.order
-        })
-        toast.success('单元创建成功')
-      }
-      closeModals()
+  function deleteUnit(id: string, name: string) {
+    if (confirm(`确定删除单元「${name}」吗？里面的所有单词都会被删除。`)) {
+      storage.deleteUnit(id)
       loadUnits()
-    } catch {
-      toast.error(editingUnit ? '更新失败' : '创建失败')
-    } finally {
-      setSubmitting(false)
     }
   }
 
-  async function handleDelete(unit: Unit, e: React.MouseEvent) {
-    e.stopPropagation()
-    setMenuOpenId(null)
-    if (!window.confirm(`确定要删除单元「${unit.name}」吗？此操作不可恢复。`)) {
-      return
-    }
-    try {
-      await unitApi.remove(unit.id)
-      toast.success('删除成功')
-      loadUnits()
-    } catch {
-      toast.error('删除失败')
-    }
-  }
-
-  function handleCardClick(unitId: string) {
-    navigate(`/units/${unitId}/words`)
-  }
-
-  function handleGoToWords(unitId: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    navigate(`/units/${unitId}/words`)
-  }
-
-  function toggleMenu(unitId: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    setMenuOpenId(menuOpenId === unitId ? null : unitId)
-  }
-
-  useEffect(() => {
-    function handleClickOutside() {
-      setMenuOpenId(null)
-    }
-    if (menuOpenId) {
-      setTimeout(() => {
-        window.addEventListener('click', handleClickOutside)
-      }, 0)
-    }
-    return () => window.removeEventListener('click', handleClickOutside)
-  }, [menuOpenId])
+  const filtered = units.filter(u => u.subject === subject)
 
   return (
-    <Layout activeTab="units" title="我的词库">
-      <div className="px-4 pt-4 pb-24">
-        <div className="flex bg-white rounded-xl p-1 shadow-soft mb-4">
-          {Object.values(SUBJECTS).map(s => (
-            <button
-              key={s}
-              onClick={() => setSubject(s)}
-              className={cn(
-                'flex-1 py-2.5 rounded-lg text-sm font-medium transition-all',
-                subject === s
-                  ? 'bg-primary-600 text-white shadow-soft'
-                  : 'text-gray-600 hover:bg-gray-50'
-              )}
-            >
-              {SUBJECT_LABELS[s]}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <Loading />
-        ) : units.length === 0 ? (
-          <EmptyState
-            title="还没有词库单元"
-            description="点击右下角的 + 按钮创建你的第一个词库单元"
-            action={
-              <button
-                onClick={openCreateModal}
-                className="btn-primary btn-sm"
-              >
-                <Plus className="w-4 h-4" />
-                创建单元
-              </button>
-            }
-          />
-        ) : (
-          <div className="space-y-3">
-            {units.map(unit => (
-              <div
-                key={unit.id}
-                onClick={() => handleCardClick(unit.id)}
-                className="card cursor-pointer hover:shadow-card active:scale-[0.99] transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="text-lg font-semibold text-gray-800 truncate">{unit.name}</h3>
-                      <span className="badge bg-primary-50 text-primary-600 shrink-0">
-                        {unit.wordCount} 词
-                      </span>
-                      {user && unit.createdBy !== user.id && (
-                        <span className="badge bg-blue-50 text-blue-600 shrink-0">
-                          <Share2 className="w-3 h-3 mr-1" />
-                          共享
-                        </span>
-                      )}
-                    </div>
-                    {(unit.textbook || unit.grade) && (
-                      <p className="text-sm text-gray-500">
-                        {[unit.textbook, unit.grade].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={(e) => handleGoToWords(unit.id, e)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => toggleMenu(unit.id, e)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                      </button>
-                      {menuOpenId === unit.id && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10 min-w-[120px]"
-                        >
-                          <button
-                            onClick={(e) => openEditModal(unit, e)}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                          >
-                            <Pencil className="w-4 h-4" />
-                            编辑
-                          </button>
-                          <button
-                            onClick={(e) => handleDelete(unit, e)}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger-500 hover:bg-gray-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            删除
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 text-xl">←</button>
+        <h1 className="text-xl font-bold text-gray-900">我的词库</h1>
       </div>
 
-      <button
-        onClick={openCreateModal}
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg flex items-center justify-center hover:bg-primary-700 active:scale-95 transition-all z-30"
-        style={{ marginBottom: 'calc(1rem + var(--safe-bottom))' }}
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <button
+            onClick={() => setSubject(SUBJECTS.ENGLISH)}
+            className={`py-3 rounded-2xl font-medium transition-all ${subject === SUBJECTS.ENGLISH ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-700 border border-gray-200'}`}
+          >🔤 英语</button>
+          <button
+            onClick={() => setSubject(SUBJECTS.CHINESE)}
+            className={`py-3 rounded-2xl font-medium transition-all ${subject === SUBJECTS.CHINESE ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-gray-700 border border-gray-200'}`}
+          >📝 语文</button>
+        </div>
 
-      <Modal
-        open={showCreateModal || !!editingUnit}
-        onClose={closeModals}
-        title={editingUnit ? '编辑单元' : '创建单元'}
-        footer={
-          <>
-            <button
-              onClick={closeModals}
-              disabled={submitting}
-              className="btn-secondary flex-1"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="btn-primary flex-1"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {editingUnit ? '更新中...' : '创建中...'}
-                </>
-              ) : (
-                '确定'
-              )}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="label">单元名称 <span className="text-danger-500">*</span></label>
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={formData.name}
-              onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="例如：Unit 1、第一单元"
-              className="input"
-            />
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+            <div className="text-6xl mb-4">📖</div>
+            <p className="text-gray-500 mb-4">还没有{subject === 'english' ? '英语' : '语文'}单元</p>
+            <button onClick={() => setShowModal(true)} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium">创建第一个单元</button>
           </div>
-          <div>
-            <label className="label">年级/册次/教材版本（选填）</label>
-            <input
-              type="text"
-              value={formData.grade || formData.textbook ? `${formData.grade || ''} ${formData.textbook || ''}`.trim() : ''}
-              onChange={e => {
-                const val = e.target.value
-                setFormData(prev => ({ ...prev, grade: val, textbook: val }))
-              }}
-              placeholder="例如：三年级上册 人教版"
-              className="input"
-            />
+        ) : (
+          <div className="space-y-3">
+            {filtered.map(unit => {
+              const count = storage.getWordCount(unit.id)
+              return (
+                <div key={unit.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => navigate(`/units/${unit.id}/words`)}
+                      className="flex-1 flex items-start gap-3 text-left"
+                    >
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${subject === 'english' ? 'bg-blue-100' : 'bg-red-100'}`}>
+                        {subject === 'english' ? '🔤' : '📝'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-lg">{unit.name}</div>
+                        {unit.description && <div className="text-sm text-gray-500 mt-0.5">{unit.description}</div>}
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-medium">{count} 个单词</span>
+                        </div>
+                      </div>
+                    </button>
+                    <button onClick={() => deleteUnit(unit.id, unit.name)} className="w-10 h-10 flex items-center justify-center rounded-full text-red-400 hover:bg-red-50">🗑</button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div>
-            <label className="label">排序（数字越小越靠前）</label>
-            <input
-              type="number"
-              value={formData.order}
-              onChange={e => setFormData(prev => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
-              placeholder="0"
-              className="input"
-            />
+        )}
+
+        <button
+          onClick={() => setShowModal(true)}
+          className="fixed bottom-24 right-5 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-300 flex items-center justify-center text-3xl active:scale-95 transition-transform z-20"
+        >+</button>
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-gray-900 mb-5">创建{subject === 'english' ? '英语' : '语文'}单元</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">单元名称 *</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder={subject === 'english' ? '例如：Unit 1 Hello' : '例如：第一单元 识字一'}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-lg"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">备注（选填）</label>
+                <input
+                  type="text"
+                  value={newDesc}
+                  onChange={e => setNewDesc(e.target.value)}
+                  placeholder="例如：三年级上册 人教版"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setShowModal(false)} className="py-4 rounded-xl font-medium bg-gray-100 text-gray-700">取消</button>
+              <button onClick={createUnit} disabled={!newName.trim()} className="py-4 rounded-xl font-medium bg-indigo-600 text-white disabled:opacity-50">确定</button>
+            </div>
           </div>
         </div>
-      </Modal>
-    </Layout>
+      )}
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-2 flex justify-around">
+        <button onClick={() => navigate('/')} className="flex flex-col items-center py-2 px-4 text-gray-400">
+          <span className="text-xl">🏠</span>
+          <span className="text-xs mt-1">首页</span>
+        </button>
+        <button onClick={() => navigate('/dictation')} className="flex flex-col items-center py-2 px-4 text-gray-400">
+          <span className="text-xl">🎤</span>
+          <span className="text-xs mt-1">听写</span>
+        </button>
+        <button onClick={() => navigate('/units')} className="flex flex-col items-center py-2 px-4 text-indigo-600">
+          <span className="text-xl">📚</span>
+          <span className="text-xs mt-1">词库</span>
+        </button>
+      </div>
+    </div>
   )
 }

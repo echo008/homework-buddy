@@ -1,456 +1,260 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, Upload, Pencil, Trash2, Volume2, Loader2 } from 'lucide-react'
-import Layout from '@/components/Layout'
-import Loading from '@/components/Loading'
-import EmptyState from '@/components/EmptyState'
-import Modal from '@/components/Modal'
-import { unitApi, wordApi } from '@/api'
-import { toast } from '@/lib/utils'
-import { speak } from '@/lib/speech'
-import { SUBJECTS, SUBJECT_LABELS } from '@shared/constants'
-import type { Unit, Word } from '@shared/types'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { storage, type Unit, type Word } from '@/lib/storage'
 
 export default function Words() {
-  const { unitId } = useParams<{ unitId: string }>()
   const navigate = useNavigate()
+  const { unitId } = useParams<{ unitId: string }>()
   const [unit, setUnit] = useState<Unit | null>(null)
   const [words, setWords] = useState<Word[]>([])
-  const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showBatchModal, setShowBatchModal] = useState(false)
   const [editingWord, setEditingWord] = useState<Word | null>(null)
+
+  const [word, setWord] = useState('')
+  const [meaning, setMeaning] = useState('')
+  const [phonetic, setPhonetic] = useState('')
+  const [lesson, setLesson] = useState(1)
   const [batchText, setBatchText] = useState('')
-  const [formData, setFormData] = useState({
-    word: '',
-    meaning: '',
-    phonetic: '',
-    pinyin: '',
-    lesson: 1
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [batchSubmitting, setBatchSubmitting] = useState(false)
-  const wordInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (unitId) {
-      loadData()
+    if (!unitId) return
+    const u = storage.getUnits().find(x => x.id === unitId)
+    if (u) {
+      setUnit(u)
+      loadWords()
+    } else {
+      navigate('/units')
     }
   }, [unitId])
 
-  useEffect(() => {
-    if (showAddModal) {
-      resetForm()
-      setTimeout(() => wordInputRef.current?.focus(), 300)
-    }
-  }, [showAddModal])
-
-  useEffect(() => {
-    if (editingWord) {
-      setFormData({
-        word: editingWord.word,
-        meaning: editingWord.meaning,
-        phonetic: editingWord.phonetic || '',
-        pinyin: editingWord.pinyin || '',
-        lesson: editingWord.lesson || 1
-      })
-      setTimeout(() => wordInputRef.current?.focus(), 300)
-    }
-  }, [editingWord])
-
-  function resetForm() {
-    setFormData({
-      word: '',
-      meaning: '',
-      phonetic: '',
-      pinyin: '',
-      lesson: 1
-    })
+  function loadWords() {
+    if (!unitId) return
+    setWords(storage.getWords(unitId))
   }
 
-  async function loadData() {
-    setLoading(true)
-    try {
-      const [unitRes, wordsRes] = await Promise.all([
-        unitApi.list(),
-        wordApi.listByUnit(unitId!)
-      ])
-      if (unitRes.data) {
-        const foundUnit = unitRes.data.find(u => u.id === unitId)
-        setUnit(foundUnit || null)
-      }
-      if (wordsRes.data) {
-        setWords(wordsRes.data)
-      }
-    } catch {
-      toast.error('加载数据失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function loadWords() {
-    try {
-      const res = await wordApi.listByUnit(unitId!)
-      if (res.data) {
-        setWords(res.data)
-      }
-    } catch {
-      toast.error('加载单词列表失败')
-    }
-  }
-
-  function closeModals() {
-    setShowAddModal(false)
+  function openAddModal() {
     setEditingWord(null)
-    setShowBatchModal(false)
-    setBatchText('')
+    setWord('')
+    setMeaning('')
+    setPhonetic('')
+    setLesson(1)
+    setShowAddModal(true)
   }
 
-  async function handleSubmit() {
-    if (!formData.word.trim()) {
-      toast.warning(unit?.subject === SUBJECTS.ENGLISH ? '请输入单词' : '请输入汉字')
-      return
-    }
-    if (!formData.meaning.trim()) {
-      toast.warning('请输入释义')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const data: Partial<Word> = {
-        unitId: unitId!,
-        word: formData.word.trim(),
-        meaning: formData.meaning.trim(),
-        lesson: formData.lesson
-      }
-      if (unit?.subject === SUBJECTS.ENGLISH) {
-        data.phonetic = formData.phonetic.trim()
-      } else {
-        data.pinyin = formData.pinyin.trim()
-      }
-      if (editingWord) {
-        await wordApi.update(editingWord.id, data)
-        toast.success('更新成功')
-      } else {
-        await wordApi.create(data)
-        toast.success('添加成功')
-      }
-      closeModals()
-      loadWords()
-      loadData()
-    } catch {
-      toast.error(editingWord ? '更新失败' : '添加失败')
-    } finally {
-      setSubmitting(false)
-    }
+  function openEditModal(w: Word) {
+    setEditingWord(w)
+    setWord(w.word)
+    setMeaning(w.meaning)
+    setPhonetic(w.phonetic || '')
+    setLesson(w.lesson || 1)
+    setShowAddModal(true)
   }
 
-  async function handleBatchImport() {
-    const lines = batchText.split('\n').map(l => l.trim()).filter(l => l)
-    if (lines.length === 0) {
-      toast.warning('请输入要导入的单词')
-      return
+  function saveWord() {
+    if (!unitId || !word.trim() || !meaning.trim()) return
+    if (editingWord) {
+      storage.updateWord(editingWord.id, {
+        word: word.trim(),
+        meaning: meaning.trim(),
+        phonetic: phonetic.trim() || undefined,
+        lesson
+      })
+    } else {
+      storage.addWord({
+        unitId,
+        word: word.trim(),
+        meaning: meaning.trim(),
+        phonetic: phonetic.trim() || undefined,
+        lesson,
+        pinyin: unit?.subject === 'chinese' ? phonetic.trim() : undefined
+      })
     }
-    const parsedWords: Partial<Word>[] = []
-    for (const line of lines) {
-      const parts = line.split(/[\s\t]+/)
+    setShowAddModal(false)
+    loadWords()
+  }
+
+  function importBatch() {
+    if (!unitId || !batchText.trim()) return
+    const lines = batchText.trim().split('\n').filter(l => l.trim())
+    const newWords: Array<{unitId: string; word: string; meaning: string; lesson: number}> = []
+    lines.forEach(line => {
+      const parts = line.split(/[,，\t]/).map(p => p.trim()).filter(Boolean)
       if (parts.length >= 2) {
-        const word = parts[0]
-        const meaning = parts.slice(1).join(' ')
-        parsedWords.push({
-          word,
-          meaning,
-          unitId: unitId!,
-          lesson: 1
+        newWords.push({
+          unitId,
+          word: parts[0],
+          meaning: parts[1],
+          lesson: lesson
         })
       }
-    }
-    if (parsedWords.length === 0) {
-      toast.warning('没有解析到有效单词，请检查格式')
-      return
-    }
-    setBatchSubmitting(true)
-    try {
-      const res = await wordApi.batchImport(parsedWords, unitId!)
-      toast.success(`成功导入 ${res.data?.count || parsedWords.length} 个单词`)
-      closeModals()
+    })
+    if (newWords.length > 0) {
+      storage.addWordsBatch(newWords)
+      setBatchText('')
+      setShowBatchModal(false)
       loadWords()
-      loadData()
-    } catch {
-      toast.error('批量导入失败')
-    } finally {
-      setBatchSubmitting(false)
-    }
-  }
-
-  async function handleDelete(word: Word) {
-    if (!window.confirm(`确定要删除「${word.word}」吗？`)) {
-      return
-    }
-    try {
-      await wordApi.remove(word.id)
-      toast.success('删除成功')
-      loadWords()
-      loadData()
-    } catch {
-      toast.error('删除失败')
-    }
-  }
-
-  function handleSpeak(word: Word) {
-    if (unit?.subject === SUBJECTS.ENGLISH) {
-      speak(word.word, 'en-US')
+      alert(`成功导入 ${newWords.length} 个单词`)
     } else {
-      speak(word.word, 'zh-CN')
+      alert('没有识别到有效单词，请检查格式')
     }
   }
 
-  const subject = unit?.subject || SUBJECTS.ENGLISH
-  const isEnglish = subject === SUBJECTS.ENGLISH
-
-  if (loading) {
-    return (
-      <Layout activeTab="units" title="加载中..." showBack>
-        <Loading fullScreen />
-      </Layout>
-    )
+  function deleteWord(id: string, w: string) {
+    if (confirm(`确定删除单词「${w}」吗？`)) {
+      storage.deleteWord(id)
+      loadWords()
+    }
   }
 
-  if (!unit) {
-    return (
-      <Layout activeTab="units" title="单词列表" showBack>
-        <EmptyState
-          title="单元不存在"
-          description="该单元可能已被删除"
-          action={
-            <button
-              onClick={() => navigate('/units')}
-              className="btn-primary btn-sm"
-            >
-              返回词库
-            </button>
-          }
-        />
-      </Layout>
-    )
+  function goDictation() {
+    navigate('/dictation')
   }
+
+  if (!unit) return null
 
   return (
-    <Layout activeTab="units" title={unit.name} showBack>
-      <div className="px-4 pt-4 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="badge bg-primary-50 text-primary-600">
-              {SUBJECT_LABELS[subject]}
-            </span>
-            <span className="text-sm text-gray-500">{words.length} 个单词</span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowBatchModal(true)}
-              className="btn-secondary btn-sm"
-            >
-              <Upload className="w-4 h-4" />
-              批量导入
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary btn-sm"
-            >
-              <Plus className="w-4 h-4" />
-              添加单词
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={() => navigate('/units')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 text-xl">←</button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-gray-900 truncate">{unit.name}</h1>
+          <div className="text-xs text-gray-500">{unit.subject === 'english' ? '🔤 英语' : '📝 语文'} · {words.length}个单词</div>
+        </div>
+        <button onClick={goDictation} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-md shadow-indigo-200">听写</button>
+      </div>
+
+      <div className="p-4">
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setShowBatchModal(true)} className="flex-1 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-sm">📋 批量导入</button>
+          <button onClick={openAddModal} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-md shadow-indigo-200">+ 添加单词</button>
         </div>
 
         {words.length === 0 ? (
-          <EmptyState
-            title="该单元暂无单词"
-            description="点击右上角按钮添加你的第一个单词"
-            action={
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary btn-sm"
-              >
-                <Plus className="w-4 h-4" />
-                添加单词
-              </button>
-            }
-          />
+          <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+            <div className="text-6xl mb-4">✏️</div>
+            <p className="text-gray-500 mb-4">还没有添加单词</p>
+            <button onClick={openAddModal} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium">添加第一个单词</button>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {words.map(word => (
-              <div key={word.id} className="card">
-                <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            {words.map((w, idx) => (
+              <div key={w.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-medium flex-shrink-0">{idx + 1}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-bold text-gray-800">{word.word}</h3>
-                      {word.lesson > 0 && (
-                        <span className="badge bg-gray-100 text-gray-600">
-                          第{word.lesson}课
-                        </span>
-                      )}
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-semibold text-gray-900 text-lg">{w.word}</span>
+                      {w.phonetic && <span className="text-sm text-gray-400">{w.phonetic}</span>}
+                      {w.lesson && <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">第{w.lesson}课</span>}
                     </div>
-                    {(isEnglish ? word.phonetic : word.pinyin) && (
-                      <p className="text-sm text-gray-400 mb-1">
-                        {isEnglish ? `/${word.phonetic}/` : word.pinyin}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-600">{word.meaning}</p>
+                    <div className="text-gray-600 mt-1">{w.meaning}</div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleSpeak(word)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Volume2 className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={() => setEditingWord(word)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Pencil className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(word)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5 text-gray-400" />
-                    </button>
-                  </div>
+                  <button onClick={() => openEditModal(w)} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">✏️</button>
+                  <button onClick={() => deleteWord(w.id, w.word)} className="w-9 h-9 flex items-center justify-center rounded-full text-red-400 hover:bg-red-50">🗑</button>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        <button
+          onClick={openAddModal}
+          className="fixed bottom-24 right-5 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-300 flex items-center justify-center text-3xl active:scale-95 transition-transform z-20"
+        >+</button>
       </div>
 
-      <Modal
-        open={showAddModal || !!editingWord}
-        onClose={closeModals}
-        title={editingWord ? '编辑单词' : isEnglish ? '添加英语单词' : '添加语文词语'}
-        footer={
-          <>
-            <button
-              onClick={closeModals}
-              disabled={submitting}
-              className="btn-secondary flex-1"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="btn-primary flex-1"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {editingWord ? '更新中...' : '添加中...'}
-                </>
-              ) : (
-                '确定'
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-gray-900 mb-5">{editingWord ? '编辑单词' : unit.subject === 'english' ? '添加英语单词' : '添加语文词语'}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">{unit.subject === 'english' ? '单词' : '词语'} *</label>
+                <input
+                  type="text"
+                  value={word}
+                  onChange={e => setWord(e.target.value)}
+                  placeholder={unit.subject === 'english' ? '例如：apple' : '例如：山水'}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-lg"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">{unit.subject === 'english' ? '中文释义' : '释义/拼音'} *</label>
+                <input
+                  type="text"
+                  value={meaning}
+                  onChange={e => setMeaning(e.target.value)}
+                  placeholder={unit.subject === 'english' ? '例如：苹果' : '例如：shān shuǐ 山水'}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+              </div>
+              {unit.subject === 'english' && (
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">音标（选填）</label>
+                  <input
+                    type="text"
+                    value={phonetic}
+                    onChange={e => setPhonetic(e.target.value)}
+                    placeholder="例如：/ˈæpl/"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  />
+                </div>
               )}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="label">{isEnglish ? '单词' : '汉字'} <span className="text-danger-500">*</span></label>
-            <input
-              ref={wordInputRef}
-              type="text"
-              value={formData.word}
-              onChange={e => setFormData(prev => ({ ...prev, word: e.target.value }))}
-              placeholder={isEnglish ? '例如：apple' : '例如：春天'}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">释义 <span className="text-danger-500">*</span></label>
-            <input
-              type="text"
-              value={formData.meaning}
-              onChange={e => setFormData(prev => ({ ...prev, meaning: e.target.value }))}
-              placeholder="例如：苹果"
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">{isEnglish ? '音标' : '拼音'}</label>
-            <input
-              type="text"
-              value={isEnglish ? formData.phonetic : formData.pinyin}
-              onChange={e => {
-                if (isEnglish) {
-                  setFormData(prev => ({ ...prev, phonetic: e.target.value }))
-                } else {
-                  setFormData(prev => ({ ...prev, pinyin: e.target.value }))
-                }
-              }}
-              placeholder={isEnglish ? '例如：/ˈæpl/' : '例如：chūn tiān'}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="label">课次</label>
-            <input
-              type="number"
-              min={1}
-              value={formData.lesson}
-              onChange={e => setFormData(prev => ({ ...prev, lesson: parseInt(e.target.value) || 1 }))}
-              placeholder="1"
-              className="input"
-            />
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">课次</label>
+                <input
+                  type="number"
+                  value={lesson}
+                  onChange={e => setLesson(Math.max(1, parseInt(e.target.value) || 1))}
+                  min={1}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setShowAddModal(false)} className="py-4 rounded-xl font-medium bg-gray-100 text-gray-700">取消</button>
+              <button onClick={saveWord} disabled={!word.trim() || !meaning.trim()} className="py-4 rounded-xl font-medium bg-indigo-600 text-white disabled:opacity-50">{editingWord ? '保存' : '添加'}</button>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
 
-      <Modal
-        open={showBatchModal}
-        onClose={closeModals}
-        title="批量导入"
-        footer={
-          <>
-            <button
-              onClick={closeModals}
-              disabled={batchSubmitting}
-              className="btn-secondary flex-1"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleBatchImport}
-              disabled={batchSubmitting}
-              className="btn-primary flex-1"
-            >
-              {batchSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  导入中...
-                </>
-              ) : (
-                '开始导入'
-              )}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500">
-            每行一个单词，格式：{isEnglish ? '单词 释义' : '汉字 释义'}，用空格分隔
-          </p>
-          <textarea
-            value={batchText}
-            onChange={e => setBatchText(e.target.value)}
-            placeholder={isEnglish ? 'apple 苹果\nbanana 香蕉\ncat 猫' : '春天 春季\n夏天 夏季\n秋天 秋季'}
-            rows={10}
-            className="input font-mono text-sm resize-none"
-          />
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowBatchModal(false)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">批量导入</h3>
+            <p className="text-sm text-gray-500 mb-4">每行一个单词，格式：<code className="bg-gray-100 px-1 rounded">单词,释义</code>（用逗号或Tab分隔）</p>
+            <textarea
+              value={batchText}
+              onChange={e => setBatchText(e.target.value)}
+              placeholder={`apple,苹果\nbanana,香蕉\ncat,猫`}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none h-40 resize-none font-mono text-sm"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <button onClick={() => setShowBatchModal(false)} className="py-4 rounded-xl font-medium bg-gray-100 text-gray-700">取消</button>
+              <button onClick={importBatch} disabled={!batchText.trim()} className="py-4 rounded-xl font-medium bg-indigo-600 text-white disabled:opacity-50">导入</button>
+            </div>
+          </div>
         </div>
-      </Modal>
-    </Layout>
+      )}
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-2 flex justify-around">
+        <button onClick={() => navigate('/')} className="flex flex-col items-center py-2 px-4 text-gray-400">
+          <span className="text-xl">🏠</span>
+          <span className="text-xs mt-1">首页</span>
+        </button>
+        <button onClick={goDictation} className="flex flex-col items-center py-2 px-4 text-gray-400">
+          <span className="text-xl">🎤</span>
+          <span className="text-xs mt-1">听写</span>
+        </button>
+        <button onClick={() => navigate('/units')} className="flex flex-col items-center py-2 px-4 text-indigo-600">
+          <span className="text-xl">📚</span>
+          <span className="text-xs mt-1">词库</span>
+        </button>
+      </div>
+    </div>
   )
 }
