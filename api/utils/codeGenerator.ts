@@ -1,18 +1,12 @@
+import crypto from 'crypto'
 import db from '../db/index.js'
 
 export function generateUniqueCode(): string {
-  let code = ''
-  let exists = true
-  let attempts = 0
-  const maxAttempts = 100
-  while (exists && attempts < maxAttempts) {
-    code = Math.floor(100000 + Math.random() * 900000).toString()
-    const row = db.prepare('SELECT id FROM classes WHERE code = ?').get(code)
-    exists = !!row
-    attempts++
+  const maxAttempts = 1000
+  for (let i = 0; i < maxAttempts; i++) {
+    const code = String(crypto.randomInt(100000, 1000000))
+    const existing = db.prepare('SELECT id FROM classes WHERE code = ?').get(code)
+    if (!existing) return code
   }
-  if (exists) {
-    throw new Error('无法生成唯一班级码，请重试')
-  }
-  return code
+  throw new Error('无法生成唯一班级码，请重试')
 }

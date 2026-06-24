@@ -11,7 +11,7 @@
     "check": "tsc --noEmit",
     "server:dev": "nodemon",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
-    "start": "node api/dist/index.js",
+    "start": "tsx api/index.ts",
     "server:build": "tsc -p api/tsconfig.json",
     "test": "vitest run"
   },

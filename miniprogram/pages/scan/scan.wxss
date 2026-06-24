@@ -1,5 +1,0 @@
-/* pages/scan/scan.wxss - 拍照识字导入页 */
-
-.scan-btn {
-  width: 80%;
-}

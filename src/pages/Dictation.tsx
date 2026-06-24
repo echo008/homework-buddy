@@ -7,7 +7,7 @@ import Layout from '@/components/Layout'
 import { useDictationStore } from '@/store/dictationStore'
 import { unitApi } from '@/api'
 import { speak, stopSpeak } from '@/lib/speech'
-import { SUBJECTS, MODES, SUBJECT_LABELS, MODE_LABELS } from '@shared/constants'
+import { SUBJECTS, MODES, SUBJECT_LABELS, MODE_LABELS, PROMPT_TYPES } from '@shared/constants'
 import type { Subject, DictationMode, Unit, DictationConfig, AnswerItem } from '@shared/types'
 
 interface DictationResult {
@@ -31,13 +31,14 @@ export default function Dictation() {
     isPlaying,
     start,
     setAnswer,
+    markWrong,
     next,
     prev,
     setPlaying,
     finish
   } = useDictationStore()
 
-  const [isConfiguring, setIsConfiguring] = useState(() => questions.length === 0)
+  const [isConfiguring, setIsConfiguring] = useState(true)
   const [subject, setSubject] = useState<Subject>(SUBJECTS.ENGLISH)
   const [mode, setMode] = useState<DictationMode>(MODES.EN2CN)
   const [units, setUnits] = useState<Unit[]>([])
@@ -51,7 +52,6 @@ export default function Dictation() {
   const [submitting, setSubmitting] = useState(false)
   const [userInput, setUserInput] = useState('')
   const [showAnswer, setShowAnswer] = useState(false)
-  const [config, setConfig] = useState<DictationConfig | null>(null)
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
@@ -109,28 +109,28 @@ export default function Dictation() {
     }
 
     setPlaying(true)
+    const ttsLang = question.ttsLang || (question.subject === SUBJECTS.ENGLISH ? 'en-US' : 'zh-CN')
 
-    if (question.audioUrl && question.subject === SUBJECTS.ENGLISH) {
+    if (question.audioUrl && question.promptType === PROMPT_TYPES.ENGLISH) {
       const audio = new Audio(question.audioUrl)
       audio.onended = () => setPlaying(false)
       audio.onerror = () => {
         setPlaying(false)
-        speak(question.prompt, 'en-US')
+        speak(question.prompt, ttsLang)
       }
       setAudioElement(audio)
       audio.play().catch(() => {
         setPlaying(false)
-        speak(question.prompt, 'en-US')
+        speak(question.prompt, ttsLang)
       })
     } else {
-      const lang = question.subject === SUBJECTS.ENGLISH ? 'en-US' : 'zh-CN'
-      speak(question.prompt, lang)
+      speak(question.prompt, ttsLang)
       setTimeout(() => setPlaying(false), 1500)
     }
   }, [questions, currentIndex, setPlaying, audioElement])
 
   useEffect(() => {
-    if (!isConfiguring && questions.length > 0) {
+    if (questions.length > 0 && !isConfiguring) {
       setUserInput('')
       setShowAnswer(false)
       const timer = setTimeout(() => {
@@ -142,7 +142,7 @@ export default function Dictation() {
   }, [currentIndex, isConfiguring, questions.length, speakCurrent])
 
   useEffect(() => {
-    if (!isConfiguring) {
+    if (!isConfiguring && !showAnswer) {
       inputRef.current?.focus()
     }
   }, [isConfiguring, showAnswer])
@@ -199,7 +199,6 @@ export default function Dictation() {
     setStarting(true)
     try {
       await start(newConfig)
-      setConfig(newConfig)
       setIsConfiguring(false)
     } catch {
       toast.error('开始听写失败，请重试')
@@ -214,6 +213,8 @@ export default function Dictation() {
 
     if (userInput.trim()) {
       setAnswer(currentIndex, userInput.trim())
+    } else {
+      markWrong(currentIndex)
     }
 
     if (currentIndex === questions.length - 1) {
@@ -225,11 +226,17 @@ export default function Dictation() {
     }
   }
 
+  function handleRevealAnswer() {
+    if (!answers.has(currentIndex)) {
+      markWrong(currentIndex)
+    }
+    setShowAnswer(true)
+  }
+
   async function handleFinish() {
-    if (!config) return
     setSubmitting(true)
     try {
-      const result = await finish(config)
+      const result = await finish()
       navigate('/dictation/result', {
         state: { result } as { result: DictationResult }
       })
@@ -243,8 +250,10 @@ export default function Dictation() {
   function goToQuestion(index: number) {
     if (index >= 0 && index < questions.length) {
       const existingAnswer = answers.get(currentIndex)
-      if (!existingAnswer && userInput.trim()) {
-        setAnswer(currentIndex, userInput.trim())
+      if (!existingAnswer) {
+        if (userInput.trim()) {
+          setAnswer(currentIndex, userInput.trim())
+        }
       }
       setUserInput('')
       setShowAnswer(false)
@@ -489,7 +498,7 @@ export default function Dictation() {
           <div
             className={cn(
               'text-5xl font-bold text-gray-800 leading-tight',
-              currentQuestion.promptType === 'english' ? 'tracking-wide' : ''
+              currentQuestion.promptType === PROMPT_TYPES.ENGLISH ? 'tracking-wide' : ''
             )}
           >
             {currentQuestion.prompt}
@@ -544,10 +553,10 @@ export default function Dictation() {
 
         {!showAnswer && !hasAnswered && (
           <button
-            onClick={() => setShowAnswer(true)}
+            onClick={handleRevealAnswer}
             className="btn-ghost w-full"
           >
-            显示答案
+            不会，看答案
           </button>
         )}
 
@@ -556,6 +565,8 @@ export default function Dictation() {
             onClick={() => {
               if (userInput.trim()) {
                 setAnswer(currentIndex, userInput.trim())
+              } else if (!answers.has(currentIndex)) {
+                markWrong(currentIndex)
               }
               setUserInput('')
               setShowAnswer(false)

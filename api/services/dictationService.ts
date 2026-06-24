@@ -8,6 +8,7 @@ function canUseCustomAudio(mode: string): boolean {
 }
 
 function buildQuestion(word: any, mode: DictationMode, index: number): Question {
+  const wordSubject = (word.subject && ['english', 'chinese'].includes(word.subject)) ? word.subject : 'english'
   const base: Question = {
     index: index + 1,
     wordId: word.id,
@@ -15,7 +16,7 @@ function buildQuestion(word: any, mode: DictationMode, index: number): Question 
     word: word.word,
     meaning: word.meaning || '',
     pinyin: word.pinyin || '',
-    subject: word.subject || 'english',
+    subject: wordSubject,
     audioUrl: word.audio_url || '',
     mode,
     prompt: '',

@@ -5,6 +5,10 @@ import type { Unit, Subject } from '../../shared/types.js'
 
 const MAX_NAME_LENGTH = 100
 
+function safeJsonParse<T>(str: string, fallback: T): T {
+  try { return JSON.parse(str || 'null') ?? fallback } catch { return fallback }
+}
+
 function rowToUnit(row: any): Unit {
   return {
     id: row.id,
@@ -79,12 +83,13 @@ export function deleteUnit(unitId: string, userId: string) {
   if (!existing) return { code: 3, message: '单元不存在' }
   if (existing.created_by !== userId) return { code: 5, message: '无权删除他人的单元' }
 
-  // 级联删除单词（因为有外键 CASCADE，删单元会自动删单词）
-  // 同步清理班级共享引用
-  const classes = db.prepare("SELECT id, members, shared_unit_ids FROM classes").all() as any[]
+  const wordCountRow = db.prepare('SELECT COUNT(*) as cnt FROM words WHERE unit_id = ?').get(unitId) as any
+  const removedWords = wordCountRow?.cnt || 0
+
+  const classes = db.prepare("SELECT id, shared_unit_ids FROM classes").all() as any[]
   for (const cls of classes) {
     try {
-      const shared = JSON.parse(cls.shared_unit_ids || '[]')
+      const shared = safeJsonParse<string[]>(cls.shared_unit_ids, [])
       if (shared.includes(unitId)) {
         const newShared = shared.filter((id: string) => id !== unitId)
         db.prepare('UPDATE classes SET shared_unit_ids = ?, updated_at = ? WHERE id = ?')
@@ -94,8 +99,7 @@ export function deleteUnit(unitId: string, userId: string) {
   }
 
   db.prepare('DELETE FROM units WHERE id = ?').run(unitId)
-  const removed = db.prepare('SELECT COUNT(*) as cnt FROM words WHERE unit_id = ?').get(unitId) as any
-  return { code: 0, message: '删除成功', data: { removedWords: removed?.cnt || 0 } }
+  return { code: 0, message: '删除成功', data: { removedWords } }
 }
 
 export function listUnits(subject: string | undefined, userId: string) {
@@ -107,16 +111,15 @@ export function listUnits(subject: string | undefined, userId: string) {
   }
   const myUnits = db.prepare(`SELECT * FROM units WHERE ${whereSql} ORDER BY order_num ASC, created_at DESC`).all(...params) as any[]
 
-  // 查询我所在的班级
   const allClasses = db.prepare("SELECT * FROM classes").all() as any[]
   const myClasses = allClasses.filter(cls => {
-    const members = safeJsonParse(cls.members, [])
+    const members = safeJsonParse<string[]>(cls.members, [])
     return cls.created_by === userId || members.includes(userId)
   })
 
   const sharedIds = new Set<string>()
   myClasses.forEach(cls => {
-    const shared = safeJsonParse(cls.shared_unit_ids, [])
+    const shared = safeJsonParse<string[]>(cls.shared_unit_ids, [])
     shared.forEach((id: string) => sharedIds.add(id))
   })
 
@@ -146,19 +149,18 @@ export function listUnits(subject: string | undefined, userId: string) {
   return { code: 0, data: merged.map(rowToUnit) }
 }
 
-function safeJsonParse(str: string, fallback: any) {
-  try { return JSON.parse(str || '[]') } catch { return fallback }
-}
-
 export function getUnitIfAccessible(unitId: string, userId: string): any {
   const unit = db.prepare('SELECT * FROM units WHERE id = ?').get(unitId) as any
   if (!unit) return null
   if (unit.created_by === userId) return unit
 
-  const classes = db.prepare("SELECT * FROM classes WHERE members LIKE ?").all(`%"${userId}"%`) as any[]
+  const classes = db.prepare("SELECT * FROM classes").all() as any[]
   for (const cls of classes) {
-    const shared = safeJsonParse(cls.shared_unit_ids, [])
-    if (shared.includes(unitId)) return unit
+    const members = safeJsonParse<string[]>(cls.members, [])
+    const shared = safeJsonParse<string[]>(cls.shared_unit_ids, [])
+    if ((cls.created_by === userId || members.includes(userId)) && shared.includes(unitId)) {
+      return unit
+    }
   }
   return null
 }

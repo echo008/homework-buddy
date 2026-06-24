@@ -1,22 +1,17 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": "../",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
     "resolveJsonModule": true,
-    "verbatimModuleSyntax": false,
-    "baseUrl": "..",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./shared/*"]
-    }
+    "verbatimModuleSyntax": false
   },
   "include": ["./**/*.ts", "../shared/**/*.ts"]
 }

@@ -6,7 +6,7 @@ import Layout from '@/components/Layout'
 import { useDictationStore } from '@/store/dictationStore'
 import { speak } from '@/lib/speech'
 import { SUBJECTS } from '@shared/constants'
-import type { Question, AnswerItem } from '@shared/types'
+import type { AnswerItem } from '@shared/types'
 
 interface DictationResult {
   totalWords: number
@@ -74,7 +74,7 @@ function getResultTheme(accuracy: number) {
 export default function DictationResult() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { reset, start } = useDictationStore()
+  const { reset, startWrongPractice } = useDictationStore()
   const [practicingWrong, setPracticingWrong] = useState(false)
 
   const result = (location.state as { result?: DictationResult })?.result
@@ -102,39 +102,13 @@ export default function DictationResult() {
 
   function handleRetry() {
     reset()
-    navigate(-1)
+    navigate('/dictation')
   }
 
-  async function handlePracticeWrong() {
+  function handlePracticeWrong() {
     if (result.wrongWords.length === 0) return
-
     setPracticingWrong(true)
-
-    const questions: Question[] = result.wrongWords.map((w, idx) => ({
-      index: idx,
-      wordId: w.wordId,
-      unitId: w.unitId,
-      word: w.word,
-      meaning: w.meaning,
-      pinyin: w.pinyin,
-      subject: w.subject,
-      mode: w.mode,
-      prompt: w.prompt,
-      promptType: w.promptType,
-      answer: w.correctAnswer,
-      answerType: w.answerType,
-      audioUrl: w.audioUrl
-    }))
-
-    useDictationStore.setState({
-      questions,
-      unitNames: ['错题练习'],
-      currentIndex: 0,
-      answers: new Map(),
-      startTime: Date.now(),
-      isPlaying: false
-    })
-
+    startWrongPractice(result.wrongWords)
     navigate('/dictation')
     setPracticingWrong(false)
   }
@@ -181,7 +155,7 @@ export default function DictationResult() {
 
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            {result.wrongWords.length === 0 ? '全对啦！🎉' : '错题回顾'}
+            {result.wrongWords.length === 0 ? '全对啦！' : '错题回顾'}
           </h2>
 
           {result.wrongWords.length === 0 ? (

@@ -1,5 +1,7 @@
-export type Subject = 'english' | 'chinese'
-export type DictationMode = 'en2cn' | 'cn2en' | 'pinyin2hanzi' | 'hanzi2pinyin'
+import type { SUBJECTS, MODES } from './constants'
+
+export type Subject = typeof SUBJECTS[keyof typeof SUBJECTS]
+export type DictationMode = typeof MODES[keyof typeof MODES]
 export type PromptType = 'english' | 'chinese' | 'pinyin'
 export type AnswerType = 'english' | 'chinese' | 'pinyin'
 
@@ -60,6 +62,7 @@ export interface Question {
   answer: string
   answerType: AnswerType
   audioUrl: string
+  ttsLang?: string
 }
 
 export interface AnswerItem {

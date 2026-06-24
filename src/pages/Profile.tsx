@@ -8,7 +8,6 @@ import Modal from '@/components/Modal'
 import { useUserStore } from '@/store/userStore'
 import { logApi } from '@/api'
 import { toast, formatDate } from '@/lib/utils'
-import { speak } from '@/lib/speech'
 import { SUBJECT_LABELS, MODE_LABELS } from '@shared/constants'
 import type { DictationLog } from '@shared/types'
 
