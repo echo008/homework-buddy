@@ -3,7 +3,11 @@ import Home from "@/pages/Home";
 import Dictation from "@/pages/Dictation";
 import Units from "@/pages/Units";
 import Words from "@/pages/Words";
+import Presets from "@/pages/Presets";
 import { Toast } from "@/components/Toast";
+import { storage } from "@/lib/storage";
+
+storage.initializeDefaultData()
 
 export default function App() {
   return (
@@ -14,6 +18,7 @@ export default function App() {
           <Route path="/dictation" element={<Dictation />} />
           <Route path="/units" element={<Units />} />
           <Route path="/units/:unitId/words" element={<Words />} />
+          <Route path="/presets" element={<Presets />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

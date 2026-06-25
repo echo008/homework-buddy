@@ -135,18 +135,17 @@ export default function Home() {
             <div className="text-xs text-gray-400 mt-1">{units.length}个单元 · {totalWords}词</div>
           </button>
           <button
-            onClick={importEnglishSample}
-            className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+            onClick={() => navigate('/presets')}
+            className="col-span-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
           >
-            <div className="text-2xl mb-1">🔤</div>
-            <div className="text-sm font-medium text-gray-700">导入英语示例</div>
-          </button>
-          <button
-            onClick={importChineseSample}
-            className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
-          >
-            <div className="text-2xl mb-1">📝</div>
-            <div className="text-sm font-medium text-gray-700">导入语文示例</div>
+            <div className="flex items-center gap-3">
+              <div className="text-3xl">📖</div>
+              <div>
+                <div className="text-lg font-bold">教材词库</div>
+                <div className="text-xs text-emerald-100 mt-0.5">小学到高中 · 语文+英语教材同步</div>
+              </div>
+              <div className="ml-auto text-white/70 text-lg">→</div>
+            </div>
           </button>
         </div>
 

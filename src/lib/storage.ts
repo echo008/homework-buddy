@@ -1,4 +1,6 @@
 const STORAGE_KEY = 'smart-dictation-data'
+const INITIALIZED_KEY = 'smart-dictation-initialized'
+import { DEFAULT_PRESETS } from '@/data/default-presets'
 
 export interface Word {
   id: string
@@ -208,5 +210,38 @@ export const storage = {
 
   clearAll() {
     saveData({ units: [], words: [], records: [] })
+    localStorage.removeItem(INITIALIZED_KEY)
+  },
+
+  initializeDefaultData() {
+    if (localStorage.getItem(INITIALIZED_KEY)) return
+    try {
+      const data = loadData()
+      DEFAULT_PRESETS.forEach(p => {
+        const existing = data.units.find(u => u.name === p.name)
+        if (existing) return
+        const unit: Unit = {
+          id: generateId(),
+          name: p.name,
+          subject: p.subject as 'english' | 'chinese',
+          description: `${p.textbook} · 内置词库`,
+          order: data.units.length,
+          createdAt: Date.now() + data.units.length
+        }
+        data.units.push(unit)
+        const newWords: Word[] = p.words.map((w, i) => ({
+          id: generateId(),
+          unitId: unit.id,
+          word: w.word,
+          meaning: w.meaning,
+          phonetic: w.phonetic,
+          lesson: 1,
+          createdAt: Date.now() + data.units.length * 100 + i
+        }))
+        data.words.push(...newWords)
+      })
+      saveData(data)
+      localStorage.setItem(INITIALIZED_KEY, '1')
+    } catch {}
   }
 }
