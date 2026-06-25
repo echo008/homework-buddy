@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { storage, type Unit, type Word } from '@/lib/storage'
+import { toast } from '@/lib/utils'
 
 export default function Words() {
   const navigate = useNavigate()
@@ -10,251 +11,254 @@ export default function Words() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showBatchModal, setShowBatchModal] = useState(false)
   const [editingWord, setEditingWord] = useState<Word | null>(null)
-
   const [word, setWord] = useState('')
   const [meaning, setMeaning] = useState('')
   const [phonetic, setPhonetic] = useState('')
-  const [lesson, setLesson] = useState(1)
   const [batchText, setBatchText] = useState('')
 
+  const isChinese = unit?.subject === 'chinese'
+
   useEffect(() => {
-    if (!unitId) return
-    const u = storage.getUnits().find(x => x.id === unitId)
-    if (u) {
-      setUnit(u)
-      loadWords()
-    } else {
-      navigate('/units')
-    }
+    if (unitId) loadData()
   }, [unitId])
 
-  function loadWords() {
+  function loadData() {
     if (!unitId) return
+    const u = storage.getUnit(unitId)
+    setUnit(u)
     setWords(storage.getWords(unitId))
   }
 
-  function openAddModal() {
+  function openAdd() {
     setEditingWord(null)
     setWord('')
     setMeaning('')
     setPhonetic('')
-    setLesson(1)
     setShowAddModal(true)
   }
 
-  function openEditModal(w: Word) {
+  function openEdit(w: Word) {
     setEditingWord(w)
     setWord(w.word)
     setMeaning(w.meaning)
     setPhonetic(w.phonetic || '')
-    setLesson(w.lesson || 1)
     setShowAddModal(true)
   }
 
-  function saveWord() {
-    if (!unitId || !word.trim() || !meaning.trim()) return
+  function handleSave() {
+    if (!word.trim() || !meaning.trim()) {
+      toast.error(isChinese ? '请填写词语和释义' : '请填写单词和释义')
+      return
+    }
+    if (!unitId) return
+
     if (editingWord) {
       storage.updateWord(editingWord.id, {
         word: word.trim(),
         meaning: meaning.trim(),
-        phonetic: phonetic.trim() || undefined,
-        lesson
+        phonetic: phonetic.trim()
       })
     } else {
       storage.addWord({
         unitId,
         word: word.trim(),
         meaning: meaning.trim(),
-        phonetic: phonetic.trim() || undefined,
-        lesson,
-        pinyin: unit?.subject === 'chinese' ? phonetic.trim() : undefined
+        phonetic: phonetic.trim()
       })
     }
     setShowAddModal(false)
-    loadWords()
+    loadData()
   }
 
-  function importBatch() {
-    if (!unitId || !batchText.trim()) return
+  function handleDelete(id: string) {
+    if (confirm('确定删除这个词？')) {
+      storage.deleteWord(id)
+      loadData()
+    }
+  }
+
+  function handleBatchImport() {
+    if (!batchText.trim() || !unitId) return
+
     const lines = batchText.trim().split('\n').filter(l => l.trim())
-    const newWords: Array<{unitId: string; word: string; meaning: string; lesson: number}> = []
+    const newWords: Array<{ unitId: string; word: string; meaning: string; phonetic: string }> = []
+
     lines.forEach(line => {
-      const parts = line.split(/[,，\t]/).map(p => p.trim()).filter(Boolean)
+      const parts = line.split(/[,，\t]/).map(s => s.trim()).filter(Boolean)
       if (parts.length >= 2) {
         newWords.push({
           unitId,
           word: parts[0],
-          meaning: parts[1],
-          lesson: lesson
+          phonetic: parts.length >= 3 ? parts[1] : '',
+          meaning: parts.length >= 3 ? parts[2] : parts[1]
         })
       }
     })
-    if (newWords.length > 0) {
-      storage.addWordsBatch(newWords)
-      setBatchText('')
-      setShowBatchModal(false)
-      loadWords()
-      alert(`成功导入 ${newWords.length} 个单词`)
-    } else {
-      alert('没有识别到有效单词，请检查格式')
+
+    if (newWords.length === 0) {
+      toast.error('格式错误，请检查每行格式')
+      return
     }
+
+    storage.addWordsBatch(newWords)
+    setBatchText('')
+    setShowBatchModal(false)
+    loadData()
+    toast.success(`成功导入 ${newWords.length} 个词`)
   }
 
-  function deleteWord(id: string, w: string) {
-    if (confirm(`确定删除单词「${w}」吗？`)) {
-      storage.deleteWord(id)
-      loadWords()
-    }
+  if (!unit) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">单元不存在</div>
+      </div>
+    )
   }
-
-  function goDictation() {
-    navigate('/dictation')
-  }
-
-  if (!unit) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28">
+    <div className="min-h-screen bg-gray-50 pb-24">
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center gap-3 border-b border-gray-100">
-        <button onClick={() => navigate('/units')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 text-xl">←</button>
+        <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 text-xl">←</button>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-gray-900 truncate">{unit.name}</h1>
-          <div className="text-xs text-gray-500">{unit.subject === 'english' ? '🔤 英语' : '📝 语文'} · {words.length}个单词</div>
+          <p className="text-xs text-gray-500">{isChinese ? '语文' : '英语'} · {words.length} 个词</p>
         </div>
-        <button onClick={goDictation} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-md shadow-indigo-200">听写</button>
+        <button
+          onClick={() => setShowBatchModal(true)}
+          className="px-3 py-2 text-sm text-indigo-600 font-medium"
+        >批量导入</button>
+        <button
+          onClick={openAdd}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-md"
+        >+ 添加</button>
       </div>
 
       <div className="p-4">
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setShowBatchModal(true)} className="flex-1 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-sm">📋 批量导入</button>
-          <button onClick={openAddModal} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm shadow-md shadow-indigo-200">+ 添加单词</button>
-        </div>
-
         {words.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
-            <div className="text-6xl mb-4">✏️</div>
-            <p className="text-gray-500 mb-4">还没有添加单词</p>
-            <button onClick={openAddModal} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium">添加第一个单词</button>
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">{isChinese ? '📝' : '🔤'}</div>
+            <p className="text-gray-500 mb-4">还没有添加任何{isChinese ? '词语' : '单词'}</p>
+            <button
+              onClick={openAdd}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium shadow-md"
+            >添加第一个{isChinese ? '词语' : '单词'}</button>
           </div>
         ) : (
           <div className="space-y-2">
             {words.map((w, idx) => (
-              <div key={w.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-medium flex-shrink-0">{idx + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-gray-900 text-lg">{w.word}</span>
-                      {w.phonetic && <span className="text-sm text-gray-400">{w.phonetic}</span>}
-                      {w.lesson && <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">第{w.lesson}课</span>}
-                    </div>
-                    <div className="text-gray-600 mt-1">{w.meaning}</div>
+              <div
+                key={w.id}
+                className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm border border-gray-100"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500 flex-shrink-0">{idx + 1}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold text-gray-900 text-lg">{w.word}</span>
+                    {w.phonetic && <span className="text-sm text-gray-400">{w.phonetic}</span>}
                   </div>
-                  <button onClick={() => openEditModal(w)} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">✏️</button>
-                  <button onClick={() => deleteWord(w.id, w.word)} className="w-9 h-9 flex items-center justify-center rounded-full text-red-400 hover:bg-red-50">🗑</button>
+                  <div className="text-sm text-gray-600 mt-0.5">{w.meaning}</div>
                 </div>
+                <button
+                  onClick={() => openEdit(w)}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-indigo-500"
+                >✏️</button>
+                <button
+                  onClick={() => handleDelete(w.id)}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500"
+                >🗑</button>
               </div>
             ))}
           </div>
         )}
-
-        <button
-          onClick={openAddModal}
-          className="fixed bottom-24 right-5 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-300 flex items-center justify-center text-3xl active:scale-95 transition-transform z-20"
-        >+</button>
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowAddModal(false)}>
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-gray-900 mb-5">{editingWord ? '编辑单词' : unit.subject === 'english' ? '添加英语单词' : '添加语文词语'}</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setShowAddModal(false)}>
+          <div className="w-full bg-white rounded-t-3xl p-5" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{editingWord ? '编辑' : '添加'}{isChinese ? '词语' : '单词'}</h3>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-2">{unit.subject === 'english' ? '单词' : '词语'} *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{isChinese ? '词语' : '单词'}</label>
                 <input
                   type="text"
                   value={word}
                   onChange={e => setWord(e.target.value)}
-                  placeholder={unit.subject === 'english' ? '例如：apple' : '例如：山水'}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-lg"
+                  placeholder={isChinese ? '如：苹果' : '如：apple'}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                   autoFocus
                 />
               </div>
+
               <div>
-                <label className="block text-sm text-gray-600 mb-2">{unit.subject === 'english' ? '中文释义' : '释义/拼音'} *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{isChinese ? '拼音（选填）' : '音标（选填）'}</label>
+                <input
+                  type="text"
+                  value={phonetic}
+                  onChange={e => setPhonetic(e.target.value)}
+                  placeholder={isChinese ? '如：píng guǒ' : '如：/ˈæpl/'}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{isChinese ? '释义' : '中文释义'}</label>
                 <input
                   type="text"
                   value={meaning}
                   onChange={e => setMeaning(e.target.value)}
-                  placeholder={unit.subject === 'english' ? '例如：苹果' : '例如：shān shuǐ 山水'}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                />
-              </div>
-              {unit.subject === 'english' && (
-                <div>
-                  <label className="block text-sm text-gray-600 mb-2">音标（选填）</label>
-                  <input
-                    type="text"
-                    value={phonetic}
-                    onChange={e => setPhonetic(e.target.value)}
-                    placeholder="例如：/ˈæpl/"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">课次</label>
-                <input
-                  type="number"
-                  value={lesson}
-                  onChange={e => setLesson(Math.max(1, parseInt(e.target.value) || 1))}
-                  min={1}
+                  placeholder={isChinese ? '如：一种水果' : '如：苹果'}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <button onClick={() => setShowAddModal(false)} className="py-4 rounded-xl font-medium bg-gray-100 text-gray-700">取消</button>
-              <button onClick={saveWord} disabled={!word.trim() || !meaning.trim()} className="py-4 rounded-xl font-medium bg-indigo-600 text-white disabled:opacity-50">{editingWord ? '保存' : '添加'}</button>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium"
+              >取消</button>
+              <button
+                onClick={handleSave}
+                disabled={!word.trim() || !meaning.trim()}
+                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50"
+              >保存</button>
             </div>
           </div>
         </div>
       )}
 
       {showBatchModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowBatchModal(false)}>
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">批量导入</h3>
-            <p className="text-sm text-gray-500 mb-4">每行一个单词，格式：<code className="bg-gray-100 px-1 rounded">单词,释义</code>（用逗号或Tab分隔）</p>
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setShowBatchModal(false)}>
+          <div className="w-full bg-white rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">批量导入</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              每行一个词，格式：{isChinese ? '词语,拼音,释义' : '单词,音标,中文释义'}（用逗号或Tab分隔，拼音/音标可省略）
+            </p>
+
             <textarea
               value={batchText}
               onChange={e => setBatchText(e.target.value)}
-              placeholder={`apple,苹果\nbanana,香蕉\ncat,猫`}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none h-40 resize-none font-mono text-sm"
-              autoFocus
+              placeholder={isChinese
+                ? '苹果,píng guǒ,一种水果\n香蕉,xiāng jiāo,一种水果\n猫,māo,一种动物'
+                : 'apple,/ˈæpl/,苹果\nbanana,/bəˈnænə/,香蕉\ncat,/kæt/,猫'}
+              className="w-full h-48 px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none font-mono text-sm"
             />
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <button onClick={() => setShowBatchModal(false)} className="py-4 rounded-xl font-medium bg-gray-100 text-gray-700">取消</button>
-              <button onClick={importBatch} disabled={!batchText.trim()} className="py-4 rounded-xl font-medium bg-indigo-600 text-white disabled:opacity-50">导入</button>
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowBatchModal(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium"
+              >取消</button>
+              <button
+                onClick={handleBatchImport}
+                disabled={!batchText.trim()}
+                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium disabled:opacity-50"
+              >导入</button>
             </div>
           </div>
         </div>
       )}
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-2 flex justify-around">
-        <button onClick={() => navigate('/')} className="flex flex-col items-center py-2 px-4 text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs mt-1">首页</span>
-        </button>
-        <button onClick={goDictation} className="flex flex-col items-center py-2 px-4 text-gray-400">
-          <span className="text-xl">🎤</span>
-          <span className="text-xs mt-1">听写</span>
-        </button>
-        <button onClick={() => navigate('/units')} className="flex flex-col items-center py-2 px-4 text-indigo-600">
-          <span className="text-xl">📚</span>
-          <span className="text-xs mt-1">词库</span>
-        </button>
-      </div>
     </div>
   )
 }

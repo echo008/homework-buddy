@@ -32,10 +32,7 @@
       "@shared/*": [
         "./shared/*"
       ]
-    },
-    "types": [
-      "node"
-    ]
+    }
   },
   "include": [
     "src",

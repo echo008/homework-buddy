@@ -68,6 +68,10 @@ export const storage = {
     return loadData().units.sort((a, b) => a.order - b.order || b.createdAt - a.createdAt)
   },
 
+  getUnit(id: string): Unit | null {
+    return loadData().units.find(u => u.id === id) || null
+  },
+
   createUnit(input: { name: string; subject: 'english' | 'chinese'; description?: string }): Unit {
     const data = loadData()
     const unit: Unit = {
@@ -181,5 +185,28 @@ export const storage = {
     data.words.push(...newWords)
     saveData(data)
     return { unit, count: newWords.length }
+  },
+
+  exportData(): string {
+    return JSON.stringify(loadData(), null, 2)
+  },
+
+  importData(jsonStr: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonStr)
+      if (parsed.units && parsed.words && parsed.records) {
+        saveData({
+          units: parsed.units || [],
+          words: parsed.words || [],
+          records: parsed.records || []
+        })
+        return true
+      }
+    } catch {}
+    return false
+  },
+
+  clearAll() {
+    saveData({ units: [], words: [], records: [] })
   }
 }

@@ -1,156 +1,232 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { storage, type Unit, type DictationRecord } from '@/lib/storage'
-import { formatDate } from '@/lib/utils'
+
+function formatDate(dateInput: string | number | Date): string {
+  const d = new Date(dateInput)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${h}:${min}`
+}
 
 export default function Home() {
   const navigate = useNavigate()
   const [units, setUnits] = useState<Unit[]>([])
   const [records, setRecords] = useState<DictationRecord[]>([])
-  const [totalWords, setTotalWords] = useState(0)
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [])
 
   function loadData() {
-    const u = storage.getUnits()
-    setUnits(u)
+    setUnits(storage.getUnits())
     setRecords(storage.getRecords().slice(0, 5))
-    let count = 0
-    u.forEach(unit => { count += storage.getWordCount(unit.id) })
-    setTotalWords(count)
   }
 
-  function goDictation() {
-    if (units.length === 0) {
-      alert('还没有词库，请先创建单元添加单词')
-      navigate('/units')
-      return
-    }
-    navigate('/dictation')
+  function importEnglishSample() {
+    if (!confirm('导入英语示例词库？（不会覆盖现有数据）')) return
+    const sampleWords = [
+      { word: 'apple', meaning: '苹果', phonetic: '/ˈæpl/' },
+      { word: 'banana', meaning: '香蕉', phonetic: '/bəˈnænə/' },
+      { word: 'cat', meaning: '猫', phonetic: '/kæt/' },
+      { word: 'dog', meaning: '狗', phonetic: '/dɔːɡ/' },
+      { word: 'hello', meaning: '你好', phonetic: '/həˈləʊ/' },
+      { word: 'book', meaning: '书', phonetic: '/bʊk/' },
+      { word: 'pen', meaning: '钢笔', phonetic: '/pen/' },
+      { word: 'teacher', meaning: '老师', phonetic: '/ˈtiːtʃə(r)/' },
+    ]
+    storage.importPreset('示例词库 (英语入门)', 'english', sampleWords)
+    loadData()
+    alert('英语示例词库已导入！')
   }
+
+  function importChineseSample() {
+    if (!confirm('导入语文示例词库？（不会覆盖现有数据）')) return
+    const sampleWords = [
+      { word: '苹果', meaning: '一种水果', phonetic: 'píng guǒ' },
+      { word: '学校', meaning: '学习的地方', phonetic: 'xué xiào' },
+      { word: '老师', meaning: '传授知识的人', phonetic: 'lǎo shī' },
+      { word: '朋友', meaning: '友好的伙伴', phonetic: 'péng yǒu' },
+      { word: '快乐', meaning: '高兴的心情', phonetic: 'kuài lè' },
+      { word: '美丽', meaning: '好看的样子', phonetic: 'měi lì' },
+      { word: '认真', meaning: '专心仔细', phonetic: 'rèn zhēn' },
+      { word: '努力', meaning: '尽力去做', phonetic: 'nǔ lì' },
+    ]
+    storage.importPreset('示例词库 (语文入门)', 'chinese', sampleWords)
+    loadData()
+    alert('语文示例词库已导入！')
+  }
+
+  function exportData() {
+    const dataStr = storage.exportData()
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `智听-词库备份-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowSettings(false)
+  }
+
+  function importData() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        const content = reader.result as string
+        if (storage.importData(content)) {
+          loadData()
+          alert('导入成功！数据已恢复')
+        } else {
+          alert('导入失败，请检查文件格式')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+    setShowSettings(false)
+  }
+
+  function clearAll() {
+    if (confirm('确定清空所有数据？此操作不可恢复！')) {
+      storage.clearAll()
+      loadData()
+      setShowSettings(false)
+    }
+  }
+
+  const totalWords = units.reduce((sum, u) => sum + storage.getWordCount(u.id), 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-24">
       <div className="px-4 pt-12 pb-6">
-        <h1 className="text-3xl font-bold text-gray-900">智听</h1>
-        <p className="text-gray-500 mt-1">智能听写助手 · 家长省心，孩子开心</p>
-      </div>
-
-      <div className="px-4 mb-6">
-        <button
-          onClick={goDictation}
-          className="w-full py-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl shadow-xl shadow-indigo-200 font-bold text-xl active:scale-98 transition-transform"
-        >
-          🎤 开始听写
-        </button>
-      </div>
-
-      <div className="px-4 mb-6">
-        <div className="grid grid-cols-3 gap-3">
-          <button onClick={() => navigate('/units')} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-            <div className="text-3xl mb-1">📚</div>
-            <div className="text-sm text-gray-700 font-medium">我的词库</div>
-            <div className="text-xs text-gray-400 mt-1">{units.length}个单元</div>
-          </button>
-          <button onClick={() => navigate('/dictation')} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-            <div className="text-3xl mb-1">✍️</div>
-            <div className="text-sm text-gray-700 font-medium">快速听写</div>
-            <div className="text-xs text-gray-400 mt-1">{totalWords}个单词</div>
-          </button>
-          <button onClick={() => {
-            const sampleWords = [
-              { word: 'apple', meaning: '苹果', phonetic: '/ˈæpl/' },
-              { word: 'banana', meaning: '香蕉', phonetic: '/bəˈnænə/' },
-              { word: 'cat', meaning: '猫', phonetic: '/kæt/' },
-              { word: 'dog', meaning: '狗', phonetic: '/dɔːɡ/' },
-              { word: 'hello', meaning: '你好', phonetic: '/həˈləʊ/' },
-            ]
-            storage.importPreset('示例词库 (入门)', 'english', sampleWords)
-            loadData()
-            alert('示例词库已导入！可以开始听写了')
-          }} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
-            <div className="text-3xl mb-1">✨</div>
-            <div className="text-sm text-gray-700 font-medium">导入示例</div>
-            <div className="text-xs text-gray-400 mt-1">快速体验</div>
-          </button>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-4xl font-bold text-gray-900">智听</h1>
+          <button onClick={() => setShowSettings(true)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 text-xl">⚙️</button>
         </div>
+        <p className="text-gray-500">智能听写助手 · 家长省心，孩子开心</p>
       </div>
 
       <div className="px-4">
-        <h3 className="text-base font-semibold text-gray-800 mb-3">我的词库</h3>
-        {units.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-            <div className="text-5xl mb-3">📖</div>
-            <p className="text-gray-500 mb-3">还没有创建词库</p>
-            <button onClick={() => navigate('/units')} className="text-indigo-600 font-medium">去创建单元 →</button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {units.map(unit => {
-              const count = storage.getWordCount(unit.id)
-              return (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <button
+            onClick={() => navigate('/dictation')}
+            className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+          >
+            <div className="text-3xl mb-2">🎤</div>
+            <div className="text-lg font-bold">开始听写</div>
+            <div className="text-xs text-indigo-100 mt-1">自动语音播报</div>
+          </button>
+          <button
+            onClick={() => navigate('/units')}
+            className="bg-white rounded-2xl p-5 text-left shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-3xl mb-2">📚</div>
+            <div className="text-lg font-bold text-gray-900">我的词库</div>
+            <div className="text-xs text-gray-400 mt-1">{units.length}个单元 · {totalWords}词</div>
+          </button>
+          <button
+            onClick={importEnglishSample}
+            className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">🔤</div>
+            <div className="text-sm font-medium text-gray-700">导入英语示例</div>
+          </button>
+          <button
+            onClick={importChineseSample}
+            className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">📝</div>
+            <div className="text-sm font-medium text-gray-700">导入语文示例</div>
+          </button>
+        </div>
+
+        {units.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-base font-semibold text-gray-800 mb-3">我的词库</h3>
+            <div className="space-y-2">
+              {units.slice(0, 4).map(unit => (
                 <button
                   key={unit.id}
                   onClick={() => navigate(`/units/${unit.id}/words`)}
-                  className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 active:bg-gray-50"
+                  className="w-full bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm border border-gray-100 active:bg-gray-50 text-left"
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${unit.subject === 'english' ? 'bg-blue-100' : 'bg-red-100'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${unit.subject === 'english' ? 'bg-blue-100' : 'bg-rose-100'}`}>
                     {unit.subject === 'english' ? '🔤' : '📝'}
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-gray-900">{unit.name}</div>
-                    {unit.description && <div className="text-sm text-gray-500">{unit.description}</div>}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{unit.name}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-indigo-600">{count}</div>
-                    <div className="text-xs text-gray-400">词</div>
-                  </div>
+                  <div className="text-sm text-gray-500">{storage.getWordCount(unit.id)} 词</div>
                 </button>
-              )
-            })}
+              ))}
+              {units.length > 4 && (
+                <button onClick={() => navigate('/units')} className="w-full py-3 text-center text-indigo-600 font-medium text-sm">
+                  查看全部 {units.length} 个单元 →
+                </button>
+              )}
+            </div>
           </div>
         )}
-      </div>
 
-      <div className="px-4 mt-6 mb-6">
-        <h3 className="text-base font-semibold text-gray-800 mb-3">最近听写</h3>
-        {records.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center border border-gray-100">
-            <p className="text-gray-400 text-sm">还没有听写记录，开始第一次听写吧！</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {records.map(r => (
-              <div key={r.id} className="bg-white rounded-2xl p-4 border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900">{r.unitNames.join(', ')}</div>
-                    <div className="text-xs text-gray-400 mt-1">{formatDate(r.createdAt)} · {r.words.length}词</div>
+        {records.length > 0 && (
+          <div>
+            <h3 className="text-base font-semibold text-gray-800 mb-3">最近听写</h3>
+            <div className="space-y-2">
+              {records.map(r => (
+                <div key={r.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-gray-900 truncate flex-1">{r.unitNames.join(', ')}</div>
                   </div>
-                  <div className="text-sm text-gray-500">{r.duration}秒</div>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                    <span>{formatDate(r.createdAt)}</span>
+                    <span>·</span>
+                    <span>{r.totalCount}词</span>
+                    {r.duration > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>{r.duration < 60 ? `${r.duration}秒` : `${Math.round(r.duration / 60)}分钟`}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-2 flex justify-around">
-        <button onClick={() => navigate('/')} className="flex flex-col items-center py-2 px-4 text-indigo-600">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs mt-1">首页</span>
-        </button>
-        <button onClick={goDictation} className="flex flex-col items-center py-2 px-4 text-gray-400">
-          <span className="text-xl">🎤</span>
-          <span className="text-xs mt-1">听写</span>
-        </button>
-        <button onClick={() => navigate('/units')} className="flex flex-col items-center py-2 px-4 text-gray-400">
-          <span className="text-xl">📚</span>
-          <span className="text-xs mt-1">词库</span>
-        </button>
-      </div>
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setShowSettings(false)}>
+          <div className="w-full bg-white rounded-t-3xl p-5" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">设置与数据</h3>
+            <div className="space-y-2">
+              <button onClick={exportData} className="w-full py-4 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-left px-4 flex items-center gap-3">
+                <span className="text-xl">💾</span>
+                <span>导出词库备份（JSON文件）</span>
+              </button>
+              <button onClick={importData} className="w-full py-4 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-left px-4 flex items-center gap-3">
+                <span className="text-xl">📥</span>
+                <span>从备份文件恢复</span>
+              </button>
+              <button onClick={clearAll} className="w-full py-4 bg-white border border-red-200 rounded-xl text-red-500 font-medium text-left px-4 flex items-center gap-3">
+                <span className="text-xl">🗑</span>
+                <span>清空所有数据</span>
+              </button>
+            </div>
+            <button onClick={() => setShowSettings(false)} className="w-full py-4 mt-4 bg-gray-100 text-gray-700 rounded-xl font-medium">关闭</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
