@@ -41,6 +41,7 @@ export default function Dictation() {
 
   const timerRef = useRef<number | null>(null)
   const isPausedRef = useRef(false)
+  const cancelledRef = useRef(false)
   const wordsRef = useRef<DictationWord[]>([])
   const currentIndexRef = useRef(0)
   const intervalRef = useRef(intervalSec)
@@ -71,10 +72,12 @@ export default function Dictation() {
   useEffect(() => { repeatRef.current = repeatCount }, [repeatCount])
 
   function clearAllTimers() {
+    cancelledRef.current = true
     if (timerRef.current) {
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
+    stopSpeak()
   }
 
   const filteredUnits = units.filter(u => u.subject === subject)
@@ -180,27 +183,37 @@ export default function Dictation() {
 
     const w = wordList[index]
     setIsPlaying(true)
+    cancelledRef.current = false
 
-    if (w.promptType !== PROMPT_TYPES.PINYIN) {
-      const repeat = repeatRef.current
-      for (let i = 0; i < repeat; i++) {
-        setTimeout(() => {
-          if (!isPausedRef.current) {
-            speak(w.prompt, w.ttsLang, 0.9)
-          }
-        }, i * 1500)
-      }
-
-      const delay = intervalRef.current * 1000 + (repeat - 1) * 1500
-      timerRef.current = window.setTimeout(() => {
-        setIsPlaying(false)
-        if (!isPausedRef.current) {
-          goNextRef.current?.(wordList)
-        }
-      }, delay)
-    } else {
+    if (w.promptType === PROMPT_TYPES.PINYIN) {
       setIsPlaying(false)
+      return
     }
+
+    const repeat = repeatRef.current
+    const intervalMs = intervalRef.current * 1000
+
+    const run = async () => {
+      for (let i = 0; i < repeat; i++) {
+        if (cancelledRef.current || isPausedRef.current) return
+        await speak(w.prompt, w.ttsLang, 0.95)
+        if (cancelledRef.current || isPausedRef.current) return
+        if (i < repeat - 1) {
+          await new Promise<void>(r => {
+            timerRef.current = window.setTimeout(r, 600)
+          })
+        }
+      }
+      if (cancelledRef.current || isPausedRef.current) return
+      await new Promise<void>(r => {
+        timerRef.current = window.setTimeout(r, intervalMs)
+      })
+      if (cancelledRef.current || isPausedRef.current) return
+      setIsPlaying(false)
+      goNextRef.current?.(wordList)
+    }
+
+    run()
   }, [])
 
   const goNext = useCallback((wordList?: DictationWord[]) => {
@@ -210,7 +223,8 @@ export default function Dictation() {
       finishRef.current?.(list)
     } else {
       setCurrentIndex(nextIdx)
-      setTimeout(() => speakWord(nextIdx, list), 500)
+      currentIndexRef.current = nextIdx
+      setTimeout(() => speakWord(nextIdx, list), 300)
     }
   }, [speakWord])
 
@@ -218,26 +232,29 @@ export default function Dictation() {
 
   function goPrev() {
     clearAllTimers()
-    stopSpeak()
+    isPausedRef.current = false
+    cancelledRef.current = false
     const prevIdx = Math.max(0, currentIndexRef.current - 1)
     setCurrentIndex(prevIdx)
+    currentIndexRef.current = prevIdx
     setTimeout(() => speakWord(prevIdx, wordsRef.current), 300)
   }
 
   function replay() {
     clearAllTimers()
-    stopSpeak()
     isPausedRef.current = false
+    cancelledRef.current = false
     speakWord(currentIndexRef.current, wordsRef.current)
   }
 
   function togglePause() {
     if (isPausedRef.current) {
       isPausedRef.current = false
+      cancelledRef.current = false
+      setIsPlaying(true)
       speakWord(currentIndexRef.current, wordsRef.current)
     } else {
       clearAllTimers()
-      stopSpeak()
       isPausedRef.current = true
       setIsPlaying(false)
     }
@@ -245,8 +262,9 @@ export default function Dictation() {
 
   function manualNext() {
     clearAllTimers()
-    stopSpeak()
     isPausedRef.current = false
+    cancelledRef.current = false
+    setIsPlaying(true)
     goNextRef.current?.(wordsRef.current)
   }
 
@@ -254,12 +272,14 @@ export default function Dictation() {
     const prepared = prepareWords()
     if (!prepared) return
 
+    clearAllTimers()
     setWords(prepared)
     wordsRef.current = prepared
     setCurrentIndex(0)
     currentIndexRef.current = 0
     setShowAnswer(false)
     isPausedRef.current = false
+    cancelledRef.current = false
     startTimeRef.current = Date.now()
     setPhase('playing')
 

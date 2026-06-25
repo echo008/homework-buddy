@@ -24,7 +24,7 @@
     "forceConsistentCasingInFileNames": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": "./",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"

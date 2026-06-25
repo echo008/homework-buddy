@@ -16,7 +16,7 @@ export default function Home() {
   const navigate = useNavigate()
   const [units, setUnits] = useState<Unit[]>([])
   const [records, setRecords] = useState<DictationRecord[]>([])
-  const [showSettings, setShowSettings] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -27,81 +27,13 @@ export default function Home() {
     setRecords(storage.getRecords().slice(0, 5))
   }
 
-  function importEnglishSample() {
-    if (!confirm('导入英语示例词库？（不会覆盖现有数据）')) return
-    const sampleWords = [
-      { word: 'apple', meaning: '苹果', phonetic: '/ˈæpl/' },
-      { word: 'banana', meaning: '香蕉', phonetic: '/bəˈnænə/' },
-      { word: 'cat', meaning: '猫', phonetic: '/kæt/' },
-      { word: 'dog', meaning: '狗', phonetic: '/dɔːɡ/' },
-      { word: 'hello', meaning: '你好', phonetic: '/həˈləʊ/' },
-      { word: 'book', meaning: '书', phonetic: '/bʊk/' },
-      { word: 'pen', meaning: '钢笔', phonetic: '/pen/' },
-      { word: 'teacher', meaning: '老师', phonetic: '/ˈtiːtʃə(r)/' },
-    ]
-    storage.importPreset('示例词库 (英语入门)', 'english', sampleWords)
-    loadData()
-    alert('英语示例词库已导入！')
-  }
-
-  function importChineseSample() {
-    if (!confirm('导入语文示例词库？（不会覆盖现有数据）')) return
-    const sampleWords = [
-      { word: '苹果', meaning: '一种水果', phonetic: 'píng guǒ' },
-      { word: '学校', meaning: '学习的地方', phonetic: 'xué xiào' },
-      { word: '老师', meaning: '传授知识的人', phonetic: 'lǎo shī' },
-      { word: '朋友', meaning: '友好的伙伴', phonetic: 'péng yǒu' },
-      { word: '快乐', meaning: '高兴的心情', phonetic: 'kuài lè' },
-      { word: '美丽', meaning: '好看的样子', phonetic: 'měi lì' },
-      { word: '认真', meaning: '专心仔细', phonetic: 'rèn zhēn' },
-      { word: '努力', meaning: '尽力去做', phonetic: 'nǔ lì' },
-    ]
-    storage.importPreset('示例词库 (语文入门)', 'chinese', sampleWords)
-    loadData()
-    alert('语文示例词库已导入！')
-  }
-
-  function exportData() {
-    const dataStr = storage.exportData()
-    const blob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `智听-词库备份-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    setShowSettings(false)
-  }
-
-  function importData() {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        const content = reader.result as string
-        if (storage.importData(content)) {
-          loadData()
-          alert('导入成功！数据已恢复')
-        } else {
-          alert('导入失败，请检查文件格式')
-        }
-      }
-      reader.readAsText(file)
+  function quickStart(subject: 'english' | 'chinese') {
+    const subjectUnits = storage.getUnits().filter(u => u.subject === subject)
+    if (subjectUnits.length === 0) {
+      navigate('/presets')
+      return
     }
-    input.click()
-    setShowSettings(false)
-  }
-
-  function clearAll() {
-    if (confirm('确定清空所有数据？此操作不可恢复！')) {
-      storage.clearAll()
-      loadData()
-      setShowSettings(false)
-    }
+    navigate('/dictation', { state: { subject, quickStart: true } })
   }
 
   const totalWords = units.reduce((sum, u) => sum + storage.getWordCount(u.id), 0)
@@ -111,47 +43,86 @@ export default function Home() {
       <div className="px-4 pt-12 pb-6">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-4xl font-bold text-gray-900">智听</h1>
-          <button onClick={() => setShowSettings(true)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 text-xl">⚙️</button>
+          <button onClick={() => navigate('/settings')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 text-xl">⚙️</button>
         </div>
         <p className="text-gray-500">智能听写助手 · 家长省心，孩子开心</p>
       </div>
 
       <div className="px-4">
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-4">
           <button
-            onClick={() => navigate('/dictation')}
-            className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+            onClick={() => quickStart('english')}
+            className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-blue-200 active:scale-95 transition-transform"
           >
-            <div className="text-3xl mb-2">🎤</div>
-            <div className="text-lg font-bold">开始听写</div>
-            <div className="text-xs text-indigo-100 mt-1">自动语音播报</div>
+            <div className="text-3xl mb-2">🔤</div>
+            <div className="text-lg font-bold">英语听写</div>
+            <div className="text-xs text-blue-100 mt-1">一键开始听英文</div>
           </button>
           <button
-            onClick={() => navigate('/units')}
-            className="bg-white rounded-2xl p-5 text-left shadow-sm border border-gray-100 active:scale-95 transition-transform"
+            onClick={() => quickStart('chinese')}
+            className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-rose-200 active:scale-95 transition-transform"
           >
-            <div className="text-3xl mb-2">📚</div>
-            <div className="text-lg font-bold text-gray-900">我的词库</div>
-            <div className="text-xs text-gray-400 mt-1">{units.length}个单元 · {totalWords}词</div>
-          </button>
-          <button
-            onClick={() => navigate('/presets')}
-            className="col-span-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white text-left shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
-          >
-            <div className="flex items-center gap-3">
-              <div className="text-3xl">📖</div>
-              <div>
-                <div className="text-lg font-bold">教材词库</div>
-                <div className="text-xs text-emerald-100 mt-0.5">小学到高中 · 语文+英语教材同步</div>
-              </div>
-              <div className="ml-auto text-white/70 text-lg">→</div>
-            </div>
+            <div className="text-3xl mb-2">📝</div>
+            <div className="text-lg font-bold">语文听写</div>
+            <div className="text-xs text-rose-100 mt-1">一键开始听词语</div>
           </button>
         </div>
 
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <button
+            onClick={() => navigate('/units')}
+            className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">📚</div>
+            <div className="text-xs text-gray-700 font-medium">我的词库</div>
+          </button>
+          <button
+            onClick={() => navigate('/presets')}
+            className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">📖</div>
+            <div className="text-xs text-gray-700 font-medium">教材词库</div>
+          </button>
+          <button
+            onClick={() => navigate('/ocr')}
+            className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">📷</div>
+            <div className="text-xs text-gray-700 font-medium">拍照识字</div>
+          </button>
+          <button
+            onClick={() => navigate('/import')}
+            className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100 active:scale-95 transition-transform"
+          >
+            <div className="text-2xl mb-1">📋</div>
+            <div className="text-xs text-gray-700 font-medium">批量导入</div>
+          </button>
+        </div>
+
+        {units.length === 0 && (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-3xl">👋</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-900 mb-1">欢迎使用智听！</h3>
+                <p className="text-sm text-amber-800 mb-3">点击下方按钮导入教材同步词库，立即开始听写。</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigate('/presets')}
+                    className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium text-sm active:scale-95"
+                  >📖 浏览教材词库</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {units.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-base font-semibold text-gray-800 mb-3">我的词库</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-gray-800">我的词库</h3>
+              <button onClick={() => navigate('/units')} className="text-sm text-indigo-600 font-medium">管理 →</button>
+            </div>
             <div className="space-y-2">
               {units.slice(0, 4).map(unit => (
                 <button
@@ -164,6 +135,7 @@ export default function Home() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-gray-900 truncate">{unit.name}</div>
+                    {unit.description && <div className="text-xs text-gray-400 truncate">{unit.description}</div>}
                   </div>
                   <div className="text-sm text-gray-500">{storage.getWordCount(unit.id)} 词</div>
                 </button>
@@ -184,7 +156,7 @@ export default function Home() {
               {records.map(r => (
                 <div key={r.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between">
-                    <div className="font-medium text-gray-900 truncate flex-1">{r.unitNames.join(', ')}</div>
+                    <div className="font-medium text-gray-900 truncate flex-1">{r.unitNames.join(', ') || '自由听写'}</div>
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <span>{formatDate(r.createdAt)}</span>
@@ -202,30 +174,13 @@ export default function Home() {
             </div>
           </div>
         )}
-      </div>
 
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setShowSettings(false)}>
-          <div className="w-full bg-white rounded-t-3xl p-5" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">设置与数据</h3>
-            <div className="space-y-2">
-              <button onClick={exportData} className="w-full py-4 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-left px-4 flex items-center gap-3">
-                <span className="text-xl">💾</span>
-                <span>导出词库备份（JSON文件）</span>
-              </button>
-              <button onClick={importData} className="w-full py-4 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium text-left px-4 flex items-center gap-3">
-                <span className="text-xl">📥</span>
-                <span>从备份文件恢复</span>
-              </button>
-              <button onClick={clearAll} className="w-full py-4 bg-white border border-red-200 rounded-xl text-red-500 font-medium text-left px-4 flex items-center gap-3">
-                <span className="text-xl">🗑</span>
-                <span>清空所有数据</span>
-              </button>
-            </div>
-            <button onClick={() => setShowSettings(false)} className="w-full py-4 mt-4 bg-gray-100 text-gray-700 rounded-xl font-medium">关闭</button>
+        <div className="mt-6 text-center">
+          <div className="text-xs text-gray-400">
+            共 {units.length} 个单元 · {totalWords} 个词
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
